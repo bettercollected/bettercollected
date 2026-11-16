@@ -3,6 +3,12 @@ secrets that the Python settings code itself signed and sealed under throw-away 
 
     uv run --project backend python rust/contract/golden_settings.py rust/bc-config/tests/golden/settings_store.json
 
+The report fingerprints (what a service tells the store about its keys) are added to the
+same file without touching the rest (sealing uses fresh nonces, so a full run rewrites every
+blob)::
+
+    uv run --project backend python rust/contract/golden_settings.py fingerprints rust/bc-config/tests/golden/settings_store.json
+
 The keys are generated for the tests only (fixed bytes, so the file is stable). The Rust
 tests (rust/bc-config/tests/settings_store_golden.rs) rebuild every derived key, signature and
 canonical byte string and open every sealed value, and compare them with this file.
@@ -94,5 +100,30 @@ def main(out: str) -> None:
     print(f"wrote {out}: {len(out_rows)} rows, {len(sealed)} sealed secrets")
 
 
+def fingerprints(out: str) -> None:
+    """``SectionKeys.fingerprint`` (the settings master key's id) and ``keyset_fingerprint``
+    (the key ids of a keyset), as Python computes them: the values a service reports as
+    ``keyset_fp``. Written into the existing file under "fingerprints"."""
+    from common.settings.loader.runtime import keyset_fingerprint
+
+    path = Path(out)
+    data = json.loads(path.read_text())
+    data["fingerprints"] = {
+        "master": SectionKeys(MASTER, sections=SECTIONS).fingerprint,
+        "master_with_previous": SectionKeys(MASTER, sections=SECTIONS, master_previous=PREVIOUS).fingerprint,
+        "previous_only": SectionKeys(PREVIOUS, sections=SECTIONS).fingerprint,
+        "keyset_ids": [
+            {"ids": ids, "fp": keyset_fingerprint(ids)}
+            for ids in ([1], [7], [300, 7], [7, 300], [4294967295, 1, 10, 2], [10, 9, 100], [1, 2, 3])
+        ],
+        "report_mark": __import__("common.settings.key_ring", fromlist=["REPORT_MARK"]).REPORT_MARK,
+    }
+    path.write_text(json.dumps(data, indent=1, sort_keys=True) + "\n")
+    print(f"wrote fingerprints into {out}")
+
+
 if __name__ == "__main__":
-    main(sys.argv[1])
+    if sys.argv[1] == "fingerprints":
+        fingerprints(sys.argv[2])
+    else:
+        main(sys.argv[1])

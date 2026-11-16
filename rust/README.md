@@ -16,7 +16,7 @@ It is not part of any compose file, image or deployment yet.
 | `bc-auth` | Verification of the session cookie (JWT key ring, claim rules). No session refresh |
 | `bc-authz` | Roles to permissions and the effective-permissions decision, pure functions |
 | `bc-crypto` | Every primitive the Python backend uses, byte-compatible and tested against vectors the Python code writes: the response ciphertext (`v1:`, Tink AES-GCM), the Fernet key ring and the envelopes sealed with it, the HMAC-derived tokens and identifiers, TOTP and recovery codes, API-key hashing, the hashes two writers must agree on (lock keys, `ETag`s, idempotency), random token shapes |
-| `bc-http` | Error shapes, CORS from the `allowed_origins` table, the client address behind trusted proxies, request privacy (what a log line may say, which responses are never cached) |
+| `bc-http` | Error shapes, CORS from the `allowed_origins` table, the client address behind trusted proxies, request privacy (what a log line may say, which responses are never cached), the request-body nesting limit (`json_depth`) |
 | `bc-api` | The axum binary: `/health`, the route groups, the pass-through |
 | `contract/` | The harness that runs the Python backend and `bc-api` side by side (Python) |
 
@@ -101,8 +101,23 @@ therefore gets the same answers from this service and from Python.
   The route group `permissions` depends on `SSO_ENABLED` and `TOTP_ENABLED`: it is served by Rust only when the origin
   of each is known; otherwise every request for it is forwarded to Python and the edge says which switch and why at
   start. Both are class R settings, so the decision is taken at start, as the value itself is.
-* The service does not report its state back to the store (`settings.report_state`) yet, so the admin portal does
-  not list it among the running services.
+* The service reports its state to the store the way the Python services do (`settings.report_state`, called as the
+  database role it already uses, which is the backend's reader role, so the admin portal lists it with the backend's
+  instances). The instance id is `backend.edge:<hostname>`; it reports at start, after each new revision it looked at,
+  and every 60 seconds. What it says: the highest revision it accepted, the names of the settings whose environment
+  value overrides the store, the names of the rows it refused, `restart_pending`, the keyset fingerprint (the key ids of
+  `MASTER_ENCRYPTION_KEYSET` when this service has one, else the fingerprint of the settings master key, as a Python
+  service without a keyset does) with the `.r1` mark, and `postgres` as its data store. A failed report is logged once
+  when it starts failing and once when it recovers, and never stops the service. The admin portal's key tasks look at
+  every live instance of the backend: this one holds a rotation back while it has not restarted onto the new key
+  (`restart_pending`), overrides the key from its environment, or (keyset tasks) does not hold the keyset being
+  rotated, which is the same rule as for a Python instance.
+* `restart_pending` is the only way Python exposes "a restart-class setting changed after start": it goes into the
+  report above (there is no health field or metric). The edge also writes one log line, naming the setting, when it
+  becomes true.
+* The environment names are those of the Python backend: `AUTH_AES_HEX_KEY` only (the workers' `AES_HEX_KEY` is not read
+  by the backend and is not read here either), and `TRUSTED_PROXIES` before `API_TRUSTED_PROXIES`. A value in the
+  environment beats the store for the name Python reads; a name Python does not read can never beat it.
 
 ## Golden vectors (cryptography)
 
@@ -125,9 +140,11 @@ uv run --project backend python rust/contract/golden_crypto.py check-derived rus
 Regenerating a vector changes its keys, so run the Rust tests again before the `check-` commands.
 
 Run the generators with the Python the backend image runs (`--python 3.11.12`): a few behaviours the vectors pin differ
-between Python releases (stray base64 padding, how deep a JSON body can nest). The nesting limit in
-`bc-crypto/src/pyjson.rs` was measured on the running backend with `contract/json_depth_probe.py`; measure it again when
-the image's Python version or the middleware stack changes.
+between Python releases (stray base64 padding).
+
+The nesting limit does not depend on the interpreter: the backend refuses a request body nested deeper than 128 levels
+(`backend/app/utils/json_depth.py`, `MAX_JSON_DEPTH`) before anything parses it, and `bc-crypto/src/pyjson.rs`
+(`MAX_DEPTH`) and `bc-http/src/json_depth.rs` use the same number. Change the three together.
 
 ## The per-group switch
 
@@ -141,6 +158,20 @@ workspace that requires single sign-on, an odd path) is forwarded to Python as i
 Python's.
 
 `GET /health` is the edge's own liveness answer; it does not ask Python.
+
+## Request bodies nested too deeply
+
+The backend answers `422` with `{"code": "body_too_deep", "message": ...}` (plus `"error"` on the MCP endpoint) to a
+POST, PUT, PATCH or DELETE whose body, declared as `application/json`, `application/*+json`, `text/plain` or nothing, nests
+arrays and objects deeper than 128 levels, before the route, authentication or routing are looked at. A route group
+mounted with `groups::served` gets the same rule from `bc_http::json_depth::guard`: a body of up to 1 MiB is held and
+scanned as it arrives, then handed to the handler unchanged; beyond that the pieces go on to the handler scanned on the way,
+and a body that turns too deep ends the handler's read and the 422 replaces its answer (a handler that has answered
+without reading keeps its answer). The scanner counts brackets outside strings and needs no valid JSON, as in Python;
+`bc_http::json_depth::too_deep` is the same check for a JSON value carried in a form field. Requests that are forwarded
+to Python are not scanned by the edge: Python answers them. The vectors in `bc-http/tests/golden/json_depth.json` are
+written by the Python code itself (`contract/golden_depth.py`, standard library only), and
+`contract/cases/permissions-json-depth.json` sends the same bodies (128, 129, past 1 MiB) through the edge and to Python.
 
 ## The pass-through
 
@@ -198,7 +229,7 @@ A part of a document that is a large model of its own (a form's fields, a theme,
 Tests: `cargo test -p bc-db` needs no database for the golden tests (`tests/records_golden.rs`: records written by
 Rust equal the documents, checksums and timestamp columns Python wrote for the same input; Rust reads every
 document Python wrote, and the old, lax or unknown-keyed documents Python reads, and refuses what Python refuses).
-`tests/records_db.rs` also needs `BC_TEST_DATABASE_URL`, a throw-away migrated database whose name contains `test`
+`tests/records_db.rs` and `bc-config/tests/settings_store_report_pg.rs` also need `BC_TEST_DATABASE_URL`, a throw-away migrated database whose name contains `test`
 (`uv run --project backend python rust/contract/golden_records.py migrate`, with `DATABASE_URL` set); without it
 those tests say so and pass. `contract/golden_records.py generate FILE` regenerates `bc-db/tests/golden/records.json`
 from the Python classes.

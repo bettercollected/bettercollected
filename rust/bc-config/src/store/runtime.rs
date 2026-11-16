@@ -37,10 +37,16 @@ use std::time::{Duration, Instant, SystemTime};
 use super::crypto::SectionKeys;
 use super::disk;
 use super::registry::{Registry, Reload, coerce};
+use super::report::{self, ServiceState};
 use super::verify::{
     RawSnapshot, Rejection, Tracker, UNTRUSTED, Verification, VerifiedSettings, verify_snapshot,
 };
 use crate::source::{Settings, StoreStatus};
+
+/// The setting that holds the keyset the service decrypts responses with.
+const KEYSET: &str = "MASTER_ENCRYPTION_KEYSET";
+/// A fresh report (heartbeat) every this long, as the Python poller does.
+const HEARTBEAT: Duration = Duration::from_secs(60);
 
 /// The service must not start. The message names keys, never values.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -68,6 +74,11 @@ pub trait SnapshotSource: Send + Sync {
     fn fetch(&self) -> Fetch<'_, RawSnapshot>;
     /// The manifest revision only (cheap).
     fn fetch_revision(&self) -> Fetch<'_, Option<u64>>;
+    /// Tells the store what this process applied (`settings.report_state`). A
+    /// source that has nowhere to report (a test double) accepts it.
+    fn report_state(&self, _instance: &str, _state: &ServiceState) -> Fetch<'_, ()> {
+        Box::pin(async { Ok(()) })
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -180,6 +191,8 @@ struct State {
     seen_revision: Option<u64>,
     last_rejections: Vec<Rejection>,
     logged: HashSet<(String, u64, String)>,
+    /// The last report reached the store (or none was tried yet).
+    report_ok: bool,
 }
 
 pub struct StoreRuntime {
@@ -244,6 +257,7 @@ impl StoreRuntime {
                 seen_revision: None,
                 last_rejections: Vec::new(),
                 logged: HashSet::new(),
+                report_ok: true,
             }),
         })
     }
@@ -429,6 +443,13 @@ impl StoreRuntime {
                 .is_some_and(|s| s.reload == Reload::R)
                 && !self.env_has(key)
             {
+                if !state.restart_pending {
+                    // names a setting, never its value; what Python shows the admin
+                    // portal as `restart_pending` (see `state`)
+                    tracing::warn!(
+                        "settings: {key} changed in the store and is read at start; this process keeps the value it started with until it is restarted"
+                    );
+                }
                 state.restart_pending = true;
             }
         }
@@ -756,6 +777,87 @@ impl StoreRuntime {
         coerce(spec, row.value.as_ref()?).ok()
     }
 
+    // ---- reporting
+
+    /// The key ids the service holds, as a fingerprint (`keyset_fp`): the ids of
+    /// `MASTER_ENCRYPTION_KEYSET` (environment, else the verified store row); a
+    /// process without a usable keyset reports the fingerprint of the settings
+    /// master key, as a Python service does.
+    fn keyset_fp(&self) -> String {
+        let value = self
+            .env
+            .get(KEYSET)
+            .or_else(|| self.resolve_key(KEYSET).ok().flatten());
+        match value.as_deref().and_then(report::keyset_key_ids) {
+            Some(ids) => report::keyset_fingerprint(&ids),
+            None => self
+                .keys
+                .as_ref()
+                .map_or_else(String::new, |k| k.fingerprint().to_string()),
+        }
+    }
+
+    /// What this process reports about itself.
+    pub fn state(&self) -> ServiceState {
+        let (revision, rejected, restart_pending) = {
+            let state = locked(&self.state);
+            let mut rejected: Vec<String> = state
+                .current
+                .rejections
+                .iter()
+                .chain(state.last_rejections.iter())
+                .map(|r| r.key.clone())
+                .filter(|k| report::is_setting_name(k))
+                .collect();
+            rejected.sort();
+            rejected.dedup();
+            (
+                state.current.revision().max(state.tracker.revision),
+                rejected,
+                state.restart_pending,
+            )
+        };
+        ServiceState {
+            revision_applied: revision,
+            env_overrides: self.env_overrides(),
+            rejected_keys: rejected,
+            restart_pending,
+            keyset_fp: self.keyset_fp(),
+            write_stores: report::WRITE_STORES.to_string(),
+        }
+    }
+
+    /// The id of this instance in the store: `backend.edge:<hostname>`.
+    pub fn instance_id(&self) -> String {
+        report::instance_id(
+            &self.registry.service,
+            report::INSTANCE_ROLE,
+            &report::hostname(),
+            Some(&self.config.snapshot_dir),
+        )
+    }
+
+    /// Tells the store what this process applied. Never fails the service: a
+    /// refusal or an outage is logged when it starts and when it ends.
+    pub async fn report_safely(&self) {
+        let Some(source) = &self.source else { return };
+        let outcome = source
+            .report_state(&self.instance_id(), &self.state())
+            .await;
+        let mut state = locked(&self.state);
+        match (outcome, state.report_ok) {
+            (Ok(()), false) => {
+                state.report_ok = true;
+                tracing::info!("settings state reported again");
+            }
+            (Err(e), true) => {
+                state.report_ok = false;
+                tracing::warn!("settings state not reported ({})", e.0);
+            }
+            _ => {}
+        }
+    }
+
     // ---- reload
 
     /// Checks the manifest revision and applies a newer snapshot. True when the
@@ -780,6 +882,8 @@ impl StoreRuntime {
         if applied {
             self.write_disk(&raw);
         }
+        // a new revision was looked at: say what this process holds now
+        self.report_safely().await;
         Ok(applied)
     }
 
@@ -790,6 +894,8 @@ impl StoreRuntime {
         let runtime = Arc::clone(self);
         Some(tokio::spawn(async move {
             let mut failures: u32 = 0;
+            runtime.report_safely().await;
+            let mut last_report = Instant::now();
             loop {
                 let base = runtime.config.poll_interval;
                 let base = if failures > 0 {
@@ -805,6 +911,10 @@ impl StoreRuntime {
                         failures = (failures + 1).min(16);
                         tracing::warn!("settings poll failed ({})", e.0);
                     }
+                }
+                if last_report.elapsed() >= HEARTBEAT {
+                    runtime.report_safely().await;
+                    last_report = Instant::now();
                 }
             }
         }))

@@ -14,6 +14,7 @@
 //! * [`verify`]: which rows are accepted.
 //! * [`disk`]: the signed disk snapshot (rollback floor, database-down start).
 //! * [`pg`]: reading the two views.
+//! * [`report`]: what the process reports about itself (`settings.report_state`).
 //! * [`runtime`]: the loader, its failure policy, live (class H) values, polling.
 
 pub mod canonical;
@@ -21,6 +22,7 @@ pub mod crypto;
 pub mod disk;
 pub mod pg;
 pub mod registry;
+pub mod report;
 pub mod runtime;
 pub mod verify;
 

@@ -138,6 +138,7 @@ pub struct SectionKeys {
     sign: Vec<Key>,
     row_sign: HashMap<String, Vec<Key>>,
     wrap: HashMap<String, Vec<Key>>,
+    fingerprint: String,
 }
 
 impl fmt::Debug for SectionKeys {
@@ -187,11 +188,18 @@ impl SectionKeys {
                 })
                 .collect()
         };
+        let fingerprint = hex::encode(&derive_from_master(&masters[0], "fp", None)[..6]);
         Ok(SectionKeys {
             sign,
             row_sign: per_section("sign"),
             wrap: per_section("wrap"),
+            fingerprint,
         })
+    }
+
+    /// A short, non-reversible id of the current master key, for reports.
+    pub fn fingerprint(&self) -> &str {
+        &self.fingerprint
     }
 
     pub fn verify_row(&self, row: &Row) -> bool {

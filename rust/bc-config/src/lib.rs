@@ -209,7 +209,10 @@ impl Config {
         // The Python services refuse to start without a signing secret and
         // never fall back to a default one; so does this one.
         let jwt_value = settings.get("AUTH_JWT_SECRET");
-        let fernet_value = settings.get_any(&["AUTH_AES_HEX_KEY", "AES_HEX_KEY"]);
+        // the backend reads `AUTH_AES_HEX_KEY` and nothing else (`AuthSettings`, prefix
+        // `AUTH_`); `AES_HEX_KEY` is the workers' name for it and the backend never
+        // looks at it, so it must not beat a value held in the settings store either
+        let fernet_value = settings.get("AUTH_AES_HEX_KEY");
         let problems = secrets::secret_problems(
             &[("AUTH_JWT_SECRET", jwt_value.as_deref())],
             // the Fernet key is optional here: checked only when it is set
@@ -287,6 +290,54 @@ mod tests {
         ];
         v.extend_from_slice(extra);
         v
+    }
+
+    const FERNET_A: &str = "L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=";
+    const FERNET_B: &str = "5O1avu1yybRV2YTwypQyQWaUpQ-twmzhtowMbKvmQqI=";
+
+    fn layered(env: &[(&str, &str)], store: &[(&str, &str)]) -> Settings {
+        let map = |pairs: &[(&str, &str)]| -> HashMap<String, String> {
+            valid(pairs)
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect()
+        };
+        let stored: HashMap<String, String> = store
+            .iter()
+            .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
+            .collect();
+        Settings::new(vec![
+            Box::new(MapSource::new(map(env))),
+            Box::new(MapSource::new(stored)),
+        ])
+    }
+
+    #[test]
+    fn the_fernet_ring_is_read_under_the_backends_name_only() {
+        let ring = |cfg: &Config| -> Option<Vec<String>> {
+            cfg.fernet_ring
+                .as_ref()
+                .map(|r| r.members().map(str::to_string).collect())
+        };
+        // a stored AUTH_AES_HEX_KEY is not beaten by an AES_HEX_KEY in the environment
+        let cfg = Config::from_settings(&layered(
+            &[("AES_HEX_KEY", FERNET_A)],
+            &[("AUTH_AES_HEX_KEY", FERNET_B)],
+        ))
+        .unwrap();
+        assert_eq!(ring(&cfg), Some(vec![FERNET_B.to_string()]));
+        // AES_HEX_KEY alone is not read at all
+        let cfg = Config::from_settings(&layered(&[("AES_HEX_KEY", FERNET_A)], &[])).unwrap();
+        assert_eq!(ring(&cfg), None);
+        // not even to be checked: a value the backend would never read cannot stop a start
+        assert!(Config::from_settings(&layered(&[("AES_HEX_KEY", "not a key")], &[])).is_ok());
+        // the environment beats the store, as it does in Python
+        let cfg = Config::from_settings(&layered(
+            &[("AUTH_AES_HEX_KEY", FERNET_A)],
+            &[("AUTH_AES_HEX_KEY", FERNET_B)],
+        ))
+        .unwrap();
+        assert_eq!(ring(&cfg), Some(vec![FERNET_A.to_string()]));
     }
 
     #[test]

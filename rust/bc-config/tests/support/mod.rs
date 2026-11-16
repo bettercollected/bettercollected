@@ -9,6 +9,7 @@ use bc_config::store::canonical::Manifest;
 pub use bc_config::store::canonical::Row;
 use bc_config::store::crypto::SectionKeys;
 use bc_config::store::registry::Registry;
+use bc_config::store::report::ServiceState;
 use bc_config::store::runtime::{Fetch, SnapshotSource, SourceUnavailable};
 use bc_config::store::verify::RawSnapshot;
 use serde_json::Value;
@@ -176,19 +177,42 @@ pub fn golden_row(key: &str) -> Row {
 
 /// A store whose content the test can replace.
 #[derive(Clone)]
-pub struct FakeStore(Arc<Mutex<Result<RawSnapshot, SourceUnavailable>>>);
+pub struct FakeStore(Arc<Mutex<Result<RawSnapshot, SourceUnavailable>>>, Reports);
+
+/// What was reported (instance id and state), and whether the next report fails.
+#[derive(Clone, Default)]
+pub struct Reports(Arc<Mutex<(Vec<Report>, bool)>>);
+
+type Report = (String, ServiceState);
 
 impl FakeStore {
     pub fn new(content: RawSnapshot) -> FakeStore {
-        FakeStore(Arc::new(Mutex::new(Ok(content))))
+        FakeStore(Arc::new(Mutex::new(Ok(content))), Reports::default())
     }
 
     pub fn down() -> FakeStore {
-        FakeStore(Arc::new(Mutex::new(Err(SourceUnavailable("connect")))))
+        FakeStore(
+            Arc::new(Mutex::new(Err(SourceUnavailable("connect")))),
+            Reports::default(),
+        )
     }
 
     pub fn set(&self, content: RawSnapshot) {
         *self.0.lock().unwrap() = Ok(content);
+    }
+
+    /// Every report received so far.
+    pub fn reports(&self) -> Vec<Report> {
+        self.1.0.lock().unwrap().0.clone()
+    }
+
+    pub fn last_report(&self) -> Report {
+        self.reports().pop().expect("nothing was reported")
+    }
+
+    /// The store refuses reports (or accepts them again).
+    pub fn refuse_reports(&self, refuse: bool) {
+        self.1.0.lock().unwrap().1 = refuse;
     }
 
     pub fn boxed(&self) -> Box<dyn SnapshotSource> {
@@ -208,6 +232,18 @@ impl SnapshotSource for FakeStore {
                 .unwrap()
                 .clone()
                 .map(|raw| raw.manifest.map(|m| m.revision))
+        })
+    }
+
+    fn report_state(&self, instance: &str, state: &ServiceState) -> Fetch<'_, ()> {
+        let (instance, state) = (instance.to_string(), state.clone());
+        Box::pin(async move {
+            let mut reports = self.1.0.lock().unwrap();
+            if reports.1 {
+                return Err(SourceUnavailable("the store refused the report"));
+            }
+            reports.0.push((instance, state));
+            Ok(())
         })
     }
 }

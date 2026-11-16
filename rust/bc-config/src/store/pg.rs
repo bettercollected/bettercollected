@@ -17,6 +17,7 @@ use sqlx::postgres::{PgConnectOptions, PgRow};
 use sqlx::{Connection, PgConnection, Row as _};
 
 use super::canonical::{Manifest, Row, is_canonical_timestamp};
+use super::report::{REPORT_MARK, ServiceState};
 use super::runtime::{Fetch, SnapshotSource, SourceUnavailable, StoreError};
 use super::verify::RawSnapshot;
 
@@ -205,5 +206,79 @@ impl SnapshotSource for PgSource {
             .await
             .unwrap_or(Err(SourceUnavailable("timeout")))
         })
+    }
+
+    fn report_state(&self, instance: &str, state: &ServiceState) -> Fetch<'_, ()> {
+        let instance = instance.to_string();
+        let state = state.clone();
+        Box::pin(async move {
+            let work = async {
+                let mut conn = self.connect().await?;
+                let revision = i64::try_from(state.revision_applied).unwrap_or(i64::MAX);
+                let fingerprint = format!("{}{REPORT_MARK}", state.keyset_fp);
+                let seven = sqlx::query(
+                    "SELECT settings.report_state($1::text, $2::bigint, $3::text[], $4::text[], \
+                     $5::boolean, $6::text, $7::text)",
+                )
+                .bind(&instance)
+                .bind(revision)
+                .bind(&state.env_overrides)
+                .bind(&state.rejected_keys)
+                .bind(state.restart_pending)
+                .bind(&fingerprint)
+                .bind(&state.write_stores)
+                .execute(&mut conn)
+                .await;
+                let outcome = match seven {
+                    Ok(_) => Ok(()),
+                    // a store from before admin revision 0018 (rolling deploy): report
+                    // without the write stores
+                    Err(e) if sqlstate(&e).as_deref() == Some("42883") => sqlx::query(
+                        "SELECT settings.report_state($1::text, $2::bigint, $3::text[], \
+                         $4::text[], $5::boolean, $6::text)",
+                    )
+                    .bind(&instance)
+                    .bind(revision)
+                    .bind(&state.env_overrides)
+                    .bind(&state.rejected_keys)
+                    .bind(state.restart_pending)
+                    .bind(&fingerprint)
+                    .execute(&mut conn)
+                    .await
+                    .map(|_| ())
+                    .map_err(|e| report_failure(&e)),
+                    Err(e) => Err(report_failure(&e)),
+                };
+                let _ = conn.close().await;
+                outcome
+            };
+            tokio::time::timeout(
+                CONNECT_TIMEOUT
+                    + Duration::from_millis(STATEMENT_TIMEOUT_MS)
+                    + Duration::from_secs(2),
+                work,
+            )
+            .await
+            .unwrap_or(Err(SourceUnavailable("timeout")))
+        })
+    }
+}
+
+fn sqlstate(error: &sqlx::Error) -> Option<String> {
+    error
+        .as_database_error()
+        .and_then(sqlx::error::DatabaseError::code)
+        .map(|c| c.to_string())
+}
+
+/// A reason that is the same for every failure of its kind, never the server's text.
+fn report_failure(error: &sqlx::Error) -> SourceUnavailable {
+    match sqlstate(error).as_deref() {
+        Some("42501") => SourceUnavailable(
+            "no permission to report (not a settings reader, or no EXECUTE on settings.report_state)",
+        ),
+        Some("42883") => SourceUnavailable("settings.report_state does not exist"),
+        Some(_) => SourceUnavailable("the store refused the report"),
+        None => SourceUnavailable("query"),
     }
 }
