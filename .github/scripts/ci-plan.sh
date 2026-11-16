@@ -35,7 +35,11 @@ if [[ "${SHARDS:-}" =~ ^[0-9]+$ ]] && [ "$SHARDS" -ge 1 ] && [ "$SHARDS" -le 16 
 fi
 
 backend=false auth=false google=false common=false webapp=false smoke=false executor=false
-everything() { backend=true auth=true google=true common=true webapp=true smoke=true executor=true; }
+# rust: the Rust workspace's own checks (rust/). rust_contract: the harness that
+# runs the Python backend and the Rust edge side by side; it also depends on the
+# Python code it seeds through (backend/, common/).
+rust=false rust_contract=false
+everything() { backend=true auth=true google=true common=true webapp=true smoke=true executor=true rust=true rust_contract=true; }
 
 if [ "$full" = true ] || [ "${EVENT:-pull_request}" != pull_request ]; then
     everything
@@ -49,15 +53,16 @@ else
         case "$f" in
         docs/spec/* | docs/settings-inventory.md) everything ;; # read by the test suites
         docs/*) ;;                                              # prose
-        webapp/src/constants/theme.ts) webapp=true common=true backend=true ;;
+        webapp/src/constants/theme.ts) webapp=true common=true backend=true rust_contract=true ;;
         webapp/*) webapp=true common=true ;; # common scans the webapp for settings names
-        backend/backend/app/constants/themes.py) backend=true common=true webapp=true ;;
-        backend/*) backend=true common=true ;;
+        backend/backend/app/constants/themes.py) backend=true common=true webapp=true rust_contract=true ;;
+        backend/*) backend=true common=true rust_contract=true ;;
         auth/*) auth=true common=true ;;
         integrations/google/*) google=true common=true ;;
-        common/*) backend=true auth=true google=true common=true ;;
+        common/*) backend=true auth=true google=true common=true rust_contract=true ;;
         temporal/actions-executor/*) executor=true backend=true common=true ;;
         temporal/*) backend=true common=true ;;
+        rust/*) rust=true rust_contract=true ;; # the Rust workspace and its contract harness
         scripts/smoke/*) smoke=true ;; # the smoke suite's self-test
         .github/workflows/smoke-production.yml) smoke=true ;;
         .github/workflows/smoke-dry-run.yml) smoke=true common=true ;; # common reads its keyset
@@ -103,6 +108,8 @@ out=${GITHUB_OUTPUT:-/dev/stdout}
     echo "webapp=$webapp"
     echo "smoke=$smoke"
     echo "executor=$executor"
+    echo "rust=$rust"
+    echo "rust_contract=$rust_contract"
     echo "backend_matrix=$matrix"
 } >>"$out"
-echo "full=$full backend=$backend auth=$auth google=$google common=$common webapp=$webapp smoke=$smoke executor=$executor" >&2
+echo "full=$full backend=$backend auth=$auth google=$google common=$common webapp=$webapp smoke=$smoke executor=$executor rust=$rust rust_contract=$rust_contract" >&2

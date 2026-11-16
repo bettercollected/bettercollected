@@ -33,7 +33,7 @@ pub fn router(state: AppState) -> Router {
         // of the path are the upstream's.
         any(|state: State<Shared>, request: Request| async move {
             if request.method() == Method::GET {
-                health().await
+                health()
             } else {
                 groups::forward(state, request).await
             }
@@ -53,7 +53,7 @@ pub fn router(state: AppState) -> Router {
     router.fallback(groups::forward).with_state(state)
 }
 
-async fn health() -> Response {
+fn health() -> Response {
     let mut response = json_response(StatusCode::OK, &json!({"status": "ok"}));
     response.headers_mut().insert(
         HeaderName::from_static("cache-control"),
