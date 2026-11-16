@@ -22,6 +22,7 @@ from backend.app.repositories.postgres.forms import (
     PostgresWorkspaceFormRepository,
 )
 from backend.app.exceptions import HTTPException
+from backend.app.utils import json_depth
 from backend.app.models.enum.permission import Permission
 from backend.app.services.ai.ops import (
     OP_NAMES,
@@ -98,9 +99,9 @@ async def read_document_bytes(request) -> bytes:
 def parse_json_document(body: bytes) -> Any:
     """``body`` as JSON, 422 when it is not."""
     try:
-        return json.loads(body)
-    except (ValueError, RecursionError):
-        # (a body of thousands of nested brackets is a RecursionError)
+        # (422 body_too_deep for one nested beyond what the parser reads)
+        return json_depth.loads(body)
+    except ValueError:
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             content={"message": "The body is not valid JSON."},

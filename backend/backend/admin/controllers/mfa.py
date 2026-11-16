@@ -229,7 +229,7 @@ def register(reg: RouteRegistry) -> None:
                 isinstance(code, str) and isinstance(action, str) and isinstance(parts, list)
                 and len(parts) <= 8 and all(isinstance(p, str) and len(p) <= 200 for p in parts)
             )
-        except (ValueError, KeyError, TypeError):
+        except (ValueError, KeyError, TypeError, RecursionError):
             valid = False
         known = {
             spec.name

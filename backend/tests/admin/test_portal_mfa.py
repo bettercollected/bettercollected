@@ -494,6 +494,22 @@ async def test_action_bound_token_rules(portal, clock, runtime_engine):
     await b.aclose()
 
 
+async def test_api_stepup_refuses_a_body_nested_deeper_than_json_reads(portal, clock):
+    """A few KB of brackets is a RecursionError in json (it answered 500)."""
+    app, _ = _bound_app(portal)
+    _, _, token, session = await mfa_session(portal, clock)
+    clock.advance(400)
+    b = Browser(app)
+    b.cookies[cookies.SESSION_COOKIE] = token
+    h = {"x-csrf-token": csrf_of(portal, session), "content-type": "application/json"}
+    for levels in (983, 984, 5000):
+        deep = await b.post(
+            "/api/stepup", content=b"[" * levels + b"]" * levels, headers=h
+        )
+        assert deep.status_code == 400 and deep.json() == {"error": "bad_request"}
+    await b.aclose()
+
+
 async def test_api_stepup_issues_a_token_for_a_registered_action(portal, clock):
     app, seen = _bound_app(portal)
     secret, codes, token, session = await mfa_session(portal, clock)

@@ -22,6 +22,7 @@ from backend.jobs.app import app as jobs_app, postgres_jobs_enabled
 from backend.app.mcp.server import build_mcp_asgi_app, mcp
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
 from backend.app.middlewares.apm_privacy import PrivateAPMClient
+from backend.app.middlewares.json_depth import JsonDepthMiddleware
 from backend.app.middlewares.received_at import ReceivedAtMiddleware
 from backend.app.middlewares.submit_limit import SubmitLimitMiddleware
 from backend.app.middlewares.request_privacy import redact_receipts
@@ -218,6 +219,10 @@ def get_application(is_test_mode: bool = False):
     # Public REST API — forms as code (docs/api/README.md). Its own app: its
     # own OpenAPI document and error shape, Bearer API keys only.
     app.mount(api_settings.ROOT_PATH + PUBLIC_API_PATH, build_public_api_asgi())
+    # a JSON body nested too deeply for the parser is refused before any route
+    # parses it; inside the submit limit below, which counts a request before
+    # its body is read
+    app.add_middleware(JsonDepthMiddleware)
     # the respondent submit's per-client limit, before its body is read; inside
     # the CORS middleware so a refusal can be read from another origin
     app.add_middleware(SubmitLimitMiddleware)

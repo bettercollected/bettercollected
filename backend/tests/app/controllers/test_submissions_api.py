@@ -1025,8 +1025,9 @@ class TestMalformedAnswers:
             headers=_auth(token, **{"Content-Type": "application/json"}),
         )
         assert refused.status_code == 422, refused.text
-        # (the same code any unreadable JSON body gets on this API)
-        assert refused.json()["code"] in {"invalid_request", "invalid_answers", "unprocessable"}
+        # (body_too_deep: nested past what a body may; a body nested less but
+        # unreadable gets the code any unreadable JSON body gets on this API)
+        assert refused.json()["code"] == "body_too_deep"
         assert (await _only_response(workspace, form_id))[1] == 0
 
 
