@@ -1,0 +1,51 @@
+{
+ "group": "permissions",
+ "description": "Feature switches on in the store, some turned off in the environment: the environment wins per switch.",
+ "store": {
+  "FIELD_RULES_ENABLED": true,
+  "CHOICE_LOGIC_ENABLED": true,
+  "SAVE_DRAFTS_ENABLED": true,
+  "CAPTCHA_ENABLED": true,
+  "CSV_IMPORT_ENABLED": true,
+  "NEW_QUESTION_TYPES_ENABLED": true,
+  "ADDRESS_QUESTION_ENABLED": true,
+  "ADDRESS_LOOKUP_ENABLED": true,
+  "SIGNATURE_QUESTION_ENABLED": true,
+  "OPTION_SOURCES_ENABLED": true,
+  "REUSABLE_SECTIONS_ENABLED": true,
+  "LAYOUT_CONTAINERS_ENABLED": true,
+  "DAYBREAK_PRESET_ENABLED": true,
+  "FORM_REVISIONS_UI_ENABLED": true,
+  "AUDIT_LOG_UI_ENABLED": true,
+  "RESPONSE_REVISIONS_ENABLED": true,
+  "SUBMISSIONS_API_ENABLED": true,
+  "FORM_EMBED_ENABLED": true,
+  "APP_THEME_PIGMENT_ENABLED": true
+ },
+ "env": {
+  "CAPTCHA_ENABLED": "false",
+  "FIELD_RULES_ENABLED": "0",
+  "DAYBREAK_PRESET_ENABLED": "off"
+ },
+ "cases": [
+  {
+   "name": "store-flags-env:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "owner",
+     "viewer",
+     "stranger"
+    ],
+    "w": [
+     "main"
+    ]
+   },
+   "served_by": "rust"
+  }
+ ]
+}

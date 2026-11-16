@@ -1,0 +1,60 @@
+{
+ "group": "permissions",
+ "description": "Both policy switches on in the settings store only (written the way the admin portal's writer does, signed), none in the environment: served by Rust, equal to Python.",
+ "store": {
+  "SSO_ENABLED": true,
+  "TOTP_ENABLED": true
+ },
+ "cases": [
+  {
+   "name": "store-both:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "both_owner",
+     "both_admin",
+     "both_owner_mfa",
+     "both_admin_apikey",
+     "both_admin_sso",
+     "dis_both_owner",
+     "dis_both_owner_mfa",
+     "totp_owner",
+     "sso_owner",
+     "owner",
+     "viewer",
+     "stranger"
+    ],
+    "w": [
+     "totp",
+     "sso",
+     "both",
+     "dis_both",
+     "main"
+    ]
+   }
+  },
+  {
+   "name": "store-both-rust:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "owner",
+     "viewer",
+     "stranger"
+    ],
+    "w": [
+     "main"
+    ]
+   },
+   "served_by": "rust"
+  }
+ ]
+}

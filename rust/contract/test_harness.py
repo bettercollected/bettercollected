@@ -198,3 +198,52 @@ def test_python_only_environment_is_read_from_the_corpus_file(tmp_path):
     assert loaded.env == {"A": "1"} and loaded.python_env == {"B": "2"}
     path.write_text(json.dumps({"group": "g", "cases": []}))
     assert corpus.load_file(path, FIXTURE).python_env == {}
+
+
+def test_store_rows_tampering_and_refused_starts_are_read_from_the_corpus_file(tmp_path):
+    base = {"group": "g", "cases": []}
+
+    def load(extra):
+        path = tmp_path / "f.json"
+        path.write_text(json.dumps({**base, **extra}))
+        return corpus.load_file(path, FIXTURE)
+
+    loaded = load({"env": {"A": None, "B": 1}, "store": {"SSO_ENABLED": True}, "tamper": [{"op": "manifest_sig"}, {"op": "value", "key": "K", "value": 1}]})
+    assert loaded.env == {"A": None, "B": "1"} and loaded.store == {"SSO_ENABLED": True} and len(loaded.tamper) == 2
+    assert load({}).store is None and load({}).expect_start is None and load({}).rust_env == {}
+    edge = load({"rust_env": {"SETTINGS_MASTER_KEY": None, "DATABASE_URL": "@EDGE_ROLE_URL", "N": 3}})
+    assert edge.rust_env == {"SETTINGS_MASTER_KEY": None, "DATABASE_URL": "@EDGE_ROLE_URL", "N": "3"}
+    assert load({"store": {}, "expect_start": "refused"}).expect_start == "refused"
+    for bad in (
+        {"store": ["x"]},
+        {"tamper": [{"op": "value"}]},
+        {"store": {}, "tamper": [{"op": "drop"}]},
+        {"tamper": [{"op": "manifest_sig"}]},  # nothing to tamper with
+        {"store": {}, "expect_start": "served"},
+        {"store": {}, "expect_start": "refused", "cases": [{"name": "x", "method": "GET", "path": "/"}]},
+    ):
+        with pytest.raises(corpus.CorpusError):
+            load(bad)
+
+
+def test_the_settings_registry_file_of_the_rust_reader_is_current():
+    """rust/bc-config/data/settings-registry.json is written from the Python registry; it must not drift."""
+    import settings_registry
+
+    try:
+        built = settings_registry.render(settings_registry.build())
+    except ImportError as error:  # a plain environment without the backend's dependencies
+        pytest.skip(f"the backend is not importable here: {error.name}")
+    assert settings_registry.OUT.read_text() == built, (
+        "run `uv run --project backend python rust/contract/settings_registry.py`"
+    )
+
+
+def test_the_placeholders_of_the_edge_environment_are_resolved():
+    import run
+
+    out = run.resolve_rust_env(
+        {"A": None, "B": "plain", "C": "@RANDOM_KEY", "D": "@EDGE_ROLE_URL"}, {"edge_role_url": "postgresql://r:p@h/d"}
+    )
+    assert out["A"] is None and out["B"] == "plain" and out["D"] == "postgresql://r:p@h/d"
+    assert len(out["C"]) >= 64 and out["C"] != run.resolve_rust_env({"C": "@RANDOM_KEY"}, {})["C"]

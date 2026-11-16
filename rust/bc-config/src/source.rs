@@ -3,9 +3,9 @@
 //! The Python services resolve a setting as: a non-empty environment value,
 //! then the verified row of the settings store, then the code default. This
 //! module is the seam for that order. [`Settings`] holds layers, first one
-//! wins; only the environment layer exists. The settings-store reader will be
-//! another [`SettingsSource`] pushed after [`EnvSource`], so no reader of a
-//! single setting changes when it arrives.
+//! wins: [`EnvSource`], then [`StoreSource`] (the values the verified settings
+//! store holds, read once at start, see `crate::store`), so no reader of a single
+//! setting knows where its value came from.
 
 use std::collections::HashMap;
 use std::fmt;
@@ -16,6 +16,42 @@ use crate::ConfigError;
 pub trait SettingsSource: Send + Sync {
     /// The raw value of `name`, if this layer has one.
     fn get(&self, name: &str) -> Option<String>;
+
+    /// Whether [`Settings`] trims the value and removes one pair of quotes (what
+    /// an env file means), and counts an empty result as unset. True for values a
+    /// person typed into the environment; false for the settings store, whose
+    /// values the Python loader hands over as stored.
+    fn trims(&self) -> bool {
+        true
+    }
+}
+
+/// The values of the verified settings store, resolved once at start (a class R
+/// setting keeps its value until restart). Debug shows a count, never a value.
+pub struct StoreSource(HashMap<String, String>);
+
+impl StoreSource {
+    pub fn new(values: HashMap<String, String>) -> StoreSource {
+        StoreSource(values)
+    }
+}
+
+impl fmt::Debug for StoreSource {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("StoreSource")
+            .field("values", &self.0.len())
+            .finish()
+    }
+}
+
+impl SettingsSource for StoreSource {
+    fn get(&self, name: &str) -> Option<String> {
+        self.0.get(name).cloned()
+    }
+
+    fn trims(&self) -> bool {
+        false
+    }
 }
 
 /// The process environment, read once.
@@ -94,22 +130,98 @@ pub fn parse_bool(value: &str) -> Option<bool> {
     }
 }
 
+/// Where the value of a setting came from. A setting whose value is only the
+/// default because the settings store could not be read or trusted here is
+/// `DefaultStoreUnavailable`: Python, which may read the store, can hold another
+/// value, so a decision that depends on the setting must not be taken from it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Origin {
+    /// A non-empty value in the environment.
+    Env,
+    /// The verified settings store.
+    Store,
+    /// The verified, signed disk snapshot of the store (the database was down at start).
+    Snapshot,
+    /// No value anywhere, and the store was read and verified: the default is right.
+    DefaultStoreOk,
+    /// No value in the environment, and the store was not read or not trusted.
+    DefaultStoreUnavailable,
+}
+
+impl Origin {
+    /// Whether the value can be relied on to be the one Python resolves.
+    pub fn is_known(self) -> bool {
+        self != Origin::DefaultStoreUnavailable
+    }
+}
+
+/// What became of the settings store at this service's start.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StoreStatus {
+    /// Read and verified.
+    Verified,
+    /// The database could not be read; the verified signed snapshot stood in.
+    Snapshot,
+    /// Not read, or not trusted. The text says why (never a value).
+    Unavailable(String),
+}
+
 /// The layers, in order of precedence.
 pub struct Settings {
     layers: Vec<Box<dyn SettingsSource>>,
+    store: StoreStatus,
 }
 
 impl fmt::Debug for Settings {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Settings")
             .field("layers", &self.layers.len())
+            .field("store", &self.store)
             .finish()
     }
 }
 
 impl Settings {
+    /// Layers with no knowledge of a settings store: a setting with no value
+    /// in the environment has the origin `DefaultStoreUnavailable`.
     pub fn new(layers: Vec<Box<dyn SettingsSource>>) -> Settings {
-        Settings { layers }
+        Settings {
+            layers,
+            store: StoreStatus::Unavailable("the settings store was not read".into()),
+        }
+    }
+
+    /// What became of the settings store (decides the origin of a default).
+    #[must_use]
+    pub fn with_store_status(mut self, status: StoreStatus) -> Settings {
+        self.store = status;
+        self
+    }
+
+    pub fn store_status(&self) -> &StoreStatus {
+        &self.store
+    }
+
+    /// Where the value of `name` comes from, or why it is only a default.
+    pub fn origin(&self, name: &str) -> Origin {
+        for layer in &self.layers {
+            let Some(raw) = layer.get(name) else { continue };
+            if layer.trims() {
+                if normalize(Some(&raw)).is_some() {
+                    return Origin::Env;
+                }
+            } else {
+                return if self.store == StoreStatus::Snapshot {
+                    Origin::Snapshot
+                } else {
+                    Origin::Store
+                };
+            }
+        }
+        match self.store {
+            StoreStatus::Verified | StoreStatus::Snapshot => Origin::DefaultStoreOk,
+            StoreStatus::Unavailable(_) => Origin::DefaultStoreUnavailable,
+        }
     }
 
     /// The process environment as the only layer.
@@ -123,9 +235,14 @@ impl Settings {
 
     /// The first layer's non-empty, normalised value.
     pub fn get(&self, name: &str) -> Option<String> {
-        self.layers
-            .iter()
-            .find_map(|layer| normalize(layer.get(name).as_deref()))
+        self.layers.iter().find_map(|layer| {
+            let raw = layer.get(name)?;
+            if layer.trims() {
+                normalize(Some(&raw))
+            } else {
+                Some(raw)
+            }
+        })
     }
 
     /// The first of several names that has a value (an alias list).
@@ -185,6 +302,116 @@ mod tests {
         ]);
         assert_eq!(settings.get("A").as_deref(), Some("from the second layer"));
         assert_eq!(settings.get("B"), None);
+    }
+
+    #[test]
+    fn a_store_value_is_not_trimmed_and_the_environment_wins_when_it_has_a_value() {
+        let store = |v: &str| {
+            Box::new(StoreSource::new(HashMap::from([(
+                "A".to_string(),
+                v.to_string(),
+            )]))) as Box<dyn SettingsSource>
+        };
+        let env = |v: &str| {
+            Box::new(Fixed("A", Box::leak(v.to_string().into_boxed_str())))
+                as Box<dyn SettingsSource>
+        };
+        // trimmed only when it comes from the environment
+        assert_eq!(
+            Settings::new(vec![store("  x  ")]).get("A").as_deref(),
+            Some("  x  ")
+        );
+        // an empty or quote-only environment value does not shadow the store
+        assert_eq!(
+            Settings::new(vec![env("\"\""), store("s")])
+                .get("A")
+                .as_deref(),
+            Some("s")
+        );
+        assert_eq!(
+            Settings::new(vec![env("  "), store("s")])
+                .get("A")
+                .as_deref(),
+            Some("s")
+        );
+        assert_eq!(
+            Settings::new(vec![env("e"), store("s")])
+                .get("A")
+                .as_deref(),
+            Some("e")
+        );
+        assert!(
+            !format!(
+                "{:?}",
+                StoreSource::new(HashMap::from([("A".into(), "secret".into())]))
+            )
+            .contains("secret")
+        );
+    }
+
+    #[test]
+    fn the_origin_of_a_setting_says_where_it_came_from_or_why_it_is_only_a_default() {
+        let store = || {
+            Box::new(StoreSource::new(HashMap::from([(
+                "S".to_string(),
+                "x".to_string(),
+            )]))) as Box<dyn SettingsSource>
+        };
+        let env = |name: &'static str, v: &'static str| {
+            Box::new(Fixed(name, v)) as Box<dyn SettingsSource>
+        };
+        let with = |layers: Vec<Box<dyn SettingsSource>>, status: StoreStatus| {
+            Settings::new(layers).with_store_status(status)
+        };
+        let down = || StoreStatus::Unavailable("not read".into());
+        // the environment wins whatever became of the store
+        for status in [StoreStatus::Verified, down()] {
+            assert_eq!(
+                with(vec![env("E", "v"), store()], status).origin("E"),
+                Origin::Env
+            );
+        }
+        // a store row is Store, or Snapshot when the snapshot stood in
+        assert_eq!(
+            with(vec![env("E", "v"), store()], StoreStatus::Verified).origin("S"),
+            Origin::Store
+        );
+        assert_eq!(
+            with(vec![env("E", "v"), store()], StoreStatus::Snapshot).origin("S"),
+            Origin::Snapshot
+        );
+        // an empty or quote-only environment value is no value
+        assert_eq!(
+            with(vec![env("E", "''"), store()], StoreStatus::Verified).origin("E"),
+            Origin::DefaultStoreOk
+        );
+        assert_eq!(
+            with(vec![env("E", " ")], down()).origin("E"),
+            Origin::DefaultStoreUnavailable
+        );
+        // no value: the default is trustworthy only when the store was read
+        assert_eq!(
+            with(vec![], StoreStatus::Verified).origin("N"),
+            Origin::DefaultStoreOk
+        );
+        assert_eq!(
+            with(vec![], StoreStatus::Snapshot).origin("N"),
+            Origin::DefaultStoreOk
+        );
+        assert_eq!(
+            with(vec![], down()).origin("N"),
+            Origin::DefaultStoreUnavailable
+        );
+        assert!(
+            Origin::Env.is_known()
+                && Origin::DefaultStoreOk.is_known()
+                && !Origin::DefaultStoreUnavailable.is_known()
+        );
+        // layers built without any knowledge of a store
+        assert_eq!(
+            Settings::from_map(HashMap::new()).origin("N"),
+            Origin::DefaultStoreUnavailable
+        );
     }
 
     #[test]

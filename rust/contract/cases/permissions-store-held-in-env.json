@@ -1,0 +1,32 @@
+{
+ "group": "permissions",
+ "description": "A store row for a switch that is held in the environment (not a store key) and one Python's loader does not read: neither counts; the environment's FORM_ACCESS_ENABLED does.",
+ "store": {
+  "API_TRUSTED_PROXIES": "10.0.0.0/8",
+  "SSO_ENABLED": true
+ },
+ "env": {
+  "FORM_ACCESS_ENABLED": "true"
+ },
+ "cases": [
+  {
+   "name": "store-held:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "owner",
+     "viewer",
+     "stranger"
+    ],
+    "w": [
+     "main"
+    ]
+   },
+   "served_by": "rust"
+  }
+ ]
+}

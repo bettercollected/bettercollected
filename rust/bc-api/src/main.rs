@@ -12,7 +12,7 @@ async fn main() {
         )
         .init();
 
-    let cfg = match Config::from_env() {
+    let cfg = match Config::load().await {
         Ok(cfg) => cfg,
         Err(error) => fail(&format!("configuration: {error}")),
     };
@@ -31,6 +31,12 @@ async fn main() {
     if let Err(error) = bc_db::check_schema(&pool).await {
         fail(&error);
     }
+    // class H settings (and a new revision of the others, which wait for a
+    // restart) follow the store while the process runs
+    let _poller = cfg
+        .store
+        .as_ref()
+        .and_then(bc_config::StoreRuntime::spawn_poller);
     let bind = cfg.bind.clone();
     tracing::info!(
         "serving groups [{}]; everything else goes to the Python backend",

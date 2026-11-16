@@ -1,0 +1,3748 @@
+{
+ "other_known": [
+  "ADMIN_MAIL_PASSWORD",
+  "ADMIN_MAIL_SENDER",
+  "ADMIN_MAIL_SMTP_PORT",
+  "ADMIN_MAIL_SMTP_SERVER",
+  "ADMIN_MAIL_SSL_TLS",
+  "ADMIN_MAIL_STARTTLS",
+  "ADMIN_MAIL_USER",
+  "ADMIN_MAIL_USE_CREDENTIALS",
+  "ADMIN_MAIL_VALIDATE_CERTS",
+  "CLIENT_ADMIN_URL",
+  "GOOGLE_API_SERVICE_NAME",
+  "GOOGLE_API_VERSION",
+  "GOOGLE_AUTH_PROVIDER_X509_CERT_URL",
+  "GOOGLE_BASIC_AUTH_REDIRECT",
+  "GOOGLE_CLIENT_TYPE",
+  "GOOGLE_JAVASCRIPT_ORIGINS",
+  "GOOGLE_PROJECT_ID",
+  "GOOGLE_REDIRECT_URIS",
+  "GOOGLE_REVOKE_CREDENTIALS_URL",
+  "GOOGLE_SCOPES",
+  "GOOGLE_SHEET_SCOPE",
+  "MAIL_AVATAR_URL_PREFIXES",
+  "MAIL_IMAGE_URL_PREFIXES",
+  "SSO_ASSERTION_MAX_AGE_SECONDS",
+  "SSO_POLIS_CLIENT_SECRET",
+  "SSO_STATE_MAX_AGE_SECONDS",
+  "STRIPE_CANCEL_URL",
+  "STRIPE_PRODUCT_ID",
+  "STRIPE_RETURN_URL",
+  "STRIPE_SECRET",
+  "STRIPE_SUCCESS_URL",
+  "STRIPE_WEBHOOK_SECRET"
+ ],
+ "retired": [
+  "BREVO_CONTACTS_API_KEY",
+  "BREVO_TRACKER_API_URL",
+  "BREVO_TRACKER_KEY",
+  "SENTRY_DEBUG",
+  "SENTRY_DSN",
+  "TYPEFORM_API_URI",
+  "TYPEFORM_AUTH_URI",
+  "TYPEFORM_BASIC_REDIRECT_URI",
+  "TYPEFORM_BASIC_SCOPE",
+  "TYPEFORM_CLIENT_ID",
+  "TYPEFORM_CLIENT_SECRET",
+  "TYPEFORM_ENABLED",
+  "TYPEFORM_REDIRECT_URI",
+  "TYPEFORM_SCOPE",
+  "TYPEFORM_TOKEN_URI"
+ ],
+ "service": "backend",
+ "specs": [
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "ADDRESS_LOOKUP_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "ADDRESS_QUESTION_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AI_CALL_TIMEOUT_SECONDS",
+   "max": 3600,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "ai",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "float"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AI_CLIENT_MAX_RETRIES",
+   "max": 10,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "ai",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": true,
+   "key": "AI_COMPAT_API_KEY",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "ai",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AI_COMPAT_BASE_URL",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "ai",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "url"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AI_COMPAT_JSON_MODE",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "ai",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AI_COMPAT_MODEL",
+   "max": null,
+   "max_length": 200,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "ai",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AI_COMPAT_VISION",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "ai",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AI_DAILY_REQUEST_BUDGET",
+   "max": 10000000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AI_DAILY_TOKEN_BUDGET",
+   "max": 2000000000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "int"
+  },
+  {
+   "choices": [
+    "openai",
+    "google",
+    "compatible"
+   ],
+   "format": "",
+   "is_secret": false,
+   "key": "AI_DEFAULT_PROVIDER",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "ai",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "enum"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AI_GAP_FILL_DEADLINE_SECONDS",
+   "max": 3600,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "ai",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "float"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AI_GENERATION_TIMEOUT_SECONDS",
+   "max": 3600,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "ai",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "float"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AI_MAX_OUTPUT_TOKENS_CHAT",
+   "max": 200000,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "ai",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AI_MAX_OUTPUT_TOKENS_GENERATE",
+   "max": 200000,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "ai",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AI_MAX_OUTPUT_TOKENS_INSIGHTS",
+   "max": 200000,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "ai",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AI_MAX_OUTPUT_TOKENS_MEMORY",
+   "max": 200000,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "ai",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AI_MAX_OUTPUT_TOKENS_REVIEW",
+   "max": 200000,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "ai",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AI_PROPOSAL_TTL_SECONDS",
+   "max": 604800,
+   "max_length": null,
+   "min": 60,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "ai",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AI_RATE_LIMIT_FIX_PER_USER",
+   "max": 100000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AI_RATE_LIMIT_PER_USER",
+   "max": 100000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AI_RATE_LIMIT_PER_WORKSPACE",
+   "max": 100000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AI_RATE_LIMIT_WINDOW_SECONDS",
+   "max": 86400,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AI_REQUEST_TIMEOUT_SECONDS",
+   "max": 3600,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "ai",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "float"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_ADDRESS_LOOKUP_FORM_PER_WINDOW",
+   "max": 1000000,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_ADDRESS_LOOKUP_PER_WINDOW",
+   "max": 100000,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_ADDRESS_LOOKUP_WINDOW_SECONDS",
+   "max": 86400,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_ALLOWED_COLLABORATORS",
+   "max": 10000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_ALLOWED_WORKSPACES",
+   "max": 10000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_CAPTCHA_BASE_BITS_MAIL",
+   "max": 20,
+   "max_length": null,
+   "min": 14,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_CAPTCHA_BASE_BITS_SUBMIT",
+   "max": 20,
+   "max_length": null,
+   "min": 14,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_CAPTCHA_DIFFICULTY_BOOST",
+   "max": 4,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_CLIENT_URL",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "auth",
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "server",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "url"
+  },
+  {
+   "choices": [],
+   "format": "cidr_list",
+   "is_secret": false,
+   "key": "API_CLOUDFLARE_IPS",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "network",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_CODE_MAIL_PER_ADDRESS_PER_HOUR",
+   "max": 1000000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_CODE_MAIL_PER_CLIENT_PER_HOUR",
+   "max": 1000000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_CODE_MAIL_PER_HOUR",
+   "max": 10000000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_DESCRIPTION",
+   "max": null,
+   "max_length": 500,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "server",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_DOCS_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "auth",
+    "backend",
+    "google"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "server",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_DOMAIN",
+   "max": null,
+   "max_length": 253,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "server",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_EDITOR_OPS_PER_WINDOW",
+   "max": 1000000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_EDITOR_OPS_SAVE_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_EDITOR_OPS_WINDOW_SECONDS",
+   "max": 86400,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_ENABLE_EXPORT_CSV",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_ENABLE_FORM_CREATION",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_ENABLE_GOOGLE_PICKER_API",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_ENVIRONMENT",
+   "max": null,
+   "max_length": 64,
+   "min": null,
+   "readers": [
+    "auth",
+    "backend",
+    "google"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "server",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_FLOW_EVENTS_PER_WINDOW",
+   "max": 100000,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_FLOW_EVENTS_RETENTION_DAYS",
+   "max": 3650,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "retention",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_FLOW_EVENTS_WINDOW_SECONDS",
+   "max": 86400,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_HOST",
+   "max": null,
+   "max_length": 253,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "server",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_IMAGE_IMPORTS_PER_WINDOW",
+   "max": 1000000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_IMAGE_IMPORTS_WINDOW_SECONDS",
+   "max": 86400,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_IMAGE_PROXY_FETCHES_PER_WINDOW",
+   "max": 1000000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_IMAGE_PROXY_GLOBAL_FETCHES_PER_WINDOW",
+   "max": 1000000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_IMAGE_PROXY_PER_WINDOW",
+   "max": 1000000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_IMAGE_PROXY_WINDOW_SECONDS",
+   "max": 86400,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_PUBLIC_API_REQUESTS_PER_WINDOW",
+   "max": 1000000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_PUBLIC_API_WINDOW_SECONDS",
+   "max": 86400,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_PUBLIC_API_WORKSPACE_REQUESTS_PER_WINDOW",
+   "max": 1000000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_RECEIPT_GLOBAL_MISSES_PER_WINDOW",
+   "max": 1000000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_RECEIPT_MISSES_PER_WINDOW",
+   "max": 1000000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_RECEIPT_REQUESTS_PER_WINDOW",
+   "max": 1000000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_RECEIPT_WINDOW_SECONDS",
+   "max": 86400,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_ROOT_PATH",
+   "max": null,
+   "max_length": 64,
+   "min": null,
+   "readers": [
+    "auth",
+    "backend",
+    "google"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "server",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_SUBMIT_PER_CLIENT_FORM_PER_MINUTE",
+   "max": 1000000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "H",
+   "retired_readers": [],
+   "section": "rate_limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_TITLE",
+   "max": null,
+   "max_length": 200,
+   "min": null,
+   "readers": [
+    "auth",
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "server",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "cidr_list",
+   "is_secret": false,
+   "key": "API_TRUSTED_PROXIES",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "network",
+   "store_backed": false,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_TRUST_CLOUDFLARE",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "network",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "API_VERSION",
+   "max": null,
+   "max_length": 64,
+   "min": null,
+   "readers": [
+    "auth",
+    "backend",
+    "google"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "server",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "APP_THEME_PIGMENT_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AUDIT_LOG_UI_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AUTH_ACCESS_TOKEN_EXPIRY_IN_MINUTES",
+   "max": 1440,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "session",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "fernet_ring",
+   "is_secret": true,
+   "key": "AUTH_AES_HEX_KEY",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "auth",
+    "backend",
+    "google",
+    "tasks",
+    "temporal_worker"
+   ],
+   "reload": "R",
+   "retired_readers": [
+    "actions_executor"
+   ],
+   "section": "auth_keys",
+   "store_backed": true,
+   "tier": "T4",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AUTH_CALLBACK_URI",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "google",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "url"
+  },
+  {
+   "choices": [],
+   "format": "token",
+   "is_secret": true,
+   "key": "AUTH_INTERNAL_NOTIFY_KEY",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "auth",
+    "backend",
+    "google"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "auth_keys",
+   "store_backed": true,
+   "tier": "T4",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "token_ring",
+   "is_secret": true,
+   "key": "AUTH_JWT_SECRET",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "auth",
+    "backend",
+    "google",
+    "tasks"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "auth_keys",
+   "store_backed": true,
+   "tier": "T4",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AUTH_REFRESH_REUSE_GRACE_SECONDS",
+   "max": 3600,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "session",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AUTH_REFRESH_TOKEN_EXPIRY_IN_DAYS",
+   "max": 365,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "session",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": true,
+   "key": "AWS_ACCESS_KEY_ID",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "storage",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AWS_BUCKET",
+   "max": null,
+   "max_length": 128,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "storage",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AWS_ENDPOINT_URL",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "storage",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "url"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AWS_PRE_SIGNED_URL_EXPIRY",
+   "max": 10080,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "storage",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AWS_PUBLIC_URL",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "storage",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "url"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "AWS_REGION",
+   "max": null,
+   "max_length": 64,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "storage",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": true,
+   "key": "AWS_SECRET_ACCESS_KEY",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "storage",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "CAPTCHA_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "CHOICE_LOGIC_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "COUPON_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "COUPON_EXPIRY_IN_DAYS",
+   "max": 3650,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "limits",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "CSV_IMPORT_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": true,
+   "key": "CUSTOM_DOMAIN_API_CREDENTIAL",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "custom_domain",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "CUSTOM_DOMAIN_API_URL",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "custom_domain",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "url"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "CUSTOM_DOMAIN_APPLICATION_ID",
+   "max": null,
+   "max_length": 200,
+   "min": null,
+   "readers": [
+    "backend",
+    "webapp"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "custom_domain",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "key_pairs",
+   "is_secret": true,
+   "key": "CUSTOM_DOMAIN_ASSERTION_KEYS",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend",
+    "webapp"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "custom_domain",
+   "store_backed": true,
+   "tier": "T4",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "secret_list",
+   "is_secret": true,
+   "key": "CUSTOM_DOMAIN_WEBHOOK_SECRETS",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "custom_domain",
+   "store_backed": true,
+   "tier": "T4",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "DAYBREAK_PRESET_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "DEBUG",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "auth",
+    "backend",
+    "google"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "server",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "DEFAULT_SEED_FLOW_TEMPLATES",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "workspace",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "DEFAULT_SHOW_TEMPLATES",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "workspace",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "DEFAULT_WORKSPACE_ID",
+   "max": null,
+   "max_length": 64,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "workspace",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "EMAIL_ACTIONS_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "email_actions",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "ENABLE_SUGGEST_PRICE",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "EVENT_WEBHOOK_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "webhooks",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "EVENT_WEBHOOK_URL",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "webhooks",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "url"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "FIELD_RULES_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "FORM_EMBED_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend",
+    "webapp"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "FORM_REVISIONS_UI_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": true,
+   "key": "GOOGLE_AI_API_KEY",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "ai",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "GOOGLE_AI_MODEL",
+   "max": null,
+   "max_length": 200,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "ai",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "GOOGLE_AUTH_URI",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "auth",
+    "backend",
+    "google"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "google",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "url"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "GOOGLE_CLIENT_ID",
+   "max": null,
+   "max_length": 300,
+   "min": null,
+   "readers": [
+    "auth",
+    "backend",
+    "google",
+    "webapp"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "google",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": true,
+   "key": "GOOGLE_CLIENT_SECRET",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "auth",
+    "backend",
+    "google"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "google",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [
+    "on",
+    "readonly",
+    "off"
+   ],
+   "format": "",
+   "is_secret": false,
+   "key": "GOOGLE_FORMS_IMPORT",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend",
+    "google"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "google",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "enum"
+  },
+  {
+   "choices": [
+    "backend",
+    "google_service"
+   ],
+   "format": "",
+   "is_secret": false,
+   "key": "GOOGLE_SHEETS_OAUTH",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "google",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "enum"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "GOOGLE_SHEET_REDIRECT_URL",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend",
+    "google"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "google",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "url"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "GOOGLE_TOKEN_URI",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "auth",
+    "backend",
+    "google"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "google",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "url"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "HTTPS_CERT_API_HOST",
+   "max": null,
+   "max_length": 253,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "custom_domain",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": true,
+   "key": "HTTPS_CERT_API_KEY",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "custom_domain",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "HTTPS_CERT_API_UPSTREAM",
+   "max": null,
+   "max_length": 253,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "custom_domain",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "LAYOUT_CONTAINERS_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": true,
+   "key": "MAIL_PASSWORD",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "admin",
+    "auth",
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "mail",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "MAIL_SENDER",
+   "max": null,
+   "max_length": 320,
+   "min": null,
+   "readers": [
+    "admin",
+    "auth",
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "mail",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "MAIL_SMTP_PORT",
+   "max": 65535,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "admin",
+    "auth",
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "mail",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "host",
+   "is_secret": false,
+   "key": "MAIL_SMTP_SERVER",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "admin",
+    "auth",
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "mail",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "MAIL_SSL_TLS",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "admin",
+    "auth",
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "mail",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "MAIL_STARTTLS",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "admin",
+    "auth",
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "mail",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "MAIL_USER",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "admin",
+    "auth",
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "mail",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "MAIL_USE_CREDENTIALS",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "admin",
+    "auth",
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "mail",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "MAIL_VALIDATE_CERTS",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "admin",
+    "auth",
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "mail",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "tink_keyset",
+   "is_secret": true,
+   "key": "MASTER_ENCRYPTION_KEYSET",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend",
+    "google",
+    "tasks"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "auth_keys",
+   "store_backed": true,
+   "tier": "T4",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "MONGO_DB",
+   "max": null,
+   "max_length": 64,
+   "min": null,
+   "readers": [
+    "auth",
+    "backend",
+    "google"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "database",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": true,
+   "key": "MONGO_URI",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "auth",
+    "backend",
+    "google"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "database",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "NEW_QUESTION_TYPES_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": true,
+   "key": "OPENAI_API_KEY",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "ai",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "OPENAI_MODAL",
+   "max": null,
+   "max_length": 200,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "ai",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "OPEN_FORMULIEREN_ATTEMPTS_PER_WORKSPACE_PER_DAY",
+   "max": 100000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "open_formulieren",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [
+    "on",
+    "off"
+   ],
+   "format": "",
+   "is_secret": false,
+   "key": "OPEN_FORMULIEREN_EXPORT",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "open_formulieren",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "enum"
+  },
+  {
+   "choices": [
+    "on",
+    "off"
+   ],
+   "format": "",
+   "is_secret": false,
+   "key": "OPEN_FORMULIEREN_IMPORT",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "open_formulieren",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "enum"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "OPEN_FORMULIEREN_IMPORTS_PER_WORKSPACE_PER_DAY",
+   "max": 100000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "open_formulieren",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [
+    "on",
+    "off"
+   ],
+   "format": "",
+   "is_secret": false,
+   "key": "OPEN_FORMULIEREN_REGISTRATION",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "registration",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "enum"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "OPTION_SOURCES_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "ORGANIZATION_NAME",
+   "max": null,
+   "max_length": 100,
+   "min": null,
+   "readers": [
+    "actions_executor",
+    "auth",
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "server",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "PDF_IMPORT_CONCURRENT_IMPORTS_PER_WORKSPACE",
+   "max": 100,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "pdf_import",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "PDF_IMPORT_HEARTBEAT_S",
+   "max": 3600,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "pdf_import",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "PDF_IMPORT_IMPORTS_PER_WORKSPACE_PER_DAY",
+   "max": 100000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "pdf_import",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "PDF_IMPORT_MAX_BYTES",
+   "max": 524288000,
+   "max_length": null,
+   "min": 1024,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "pdf_import",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "PDF_IMPORT_MAX_IMAGE_PIXELS",
+   "max": 1000000000,
+   "max_length": null,
+   "min": 1000000,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "pdf_import",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "PDF_IMPORT_MAX_PAGES",
+   "max": 1000,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "pdf_import",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "PDF_IMPORT_MAX_PARALLEL_SANDBOXES",
+   "max": 64,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "pdf_import",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "PDF_IMPORT_MAX_RESULT_BYTES",
+   "max": 524288000,
+   "max_length": null,
+   "min": 1024,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "pdf_import",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "PDF_IMPORT_OPENAI_MODEL",
+   "max": null,
+   "max_length": 200,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "pdf_import",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "PDF_IMPORT_RENDER_MAX_SIDE",
+   "max": 8000,
+   "max_length": null,
+   "min": 200,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "pdf_import",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "PDF_IMPORT_SANDBOX_MEMORY_MB",
+   "max": 65536,
+   "max_length": null,
+   "min": 128,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "pdf_import",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "PDF_IMPORT_SANDBOX_TIMEOUT_S",
+   "max": 3600,
+   "max_length": null,
+   "min": 5,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "pdf_import",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "PDF_IMPORT_STALE_AFTER_S",
+   "max": 86400,
+   "max_length": null,
+   "min": 4,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "pdf_import",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "PDF_IMPORT_STALE_SWEEP_CRON",
+   "max": null,
+   "max_length": 64,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "pdf_import",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "identity_key",
+   "is_secret": true,
+   "key": "RESPONDENT_IDENTITY_KEY",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "auth_keys",
+   "store_backed": true,
+   "tier": "T4",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "RESPONSE_REVISIONS_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "RESPONSE_VALIDATION_ENFORCE",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "REUSABLE_SECTIONS_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "SAVE_DRAFTS_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "SCIM_EVENT_RETENTION_SECONDS",
+   "max": 2592000,
+   "max_length": null,
+   "min": 60,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "sso",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "SCIM_MAX_WEBHOOK_BYTES",
+   "max": 50000000,
+   "max_length": null,
+   "min": 1024,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "sso",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "SCIM_RECONCILE_CRON",
+   "max": null,
+   "max_length": 64,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "sso",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "SCIM_RECONCILE_MAX_DEPROVISION_RATIO",
+   "max": 1,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "sso",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "float"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "SCIM_RECONCILE_MIN_DEPROVISION",
+   "max": 100000,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "sso",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "SCIM_RECONCILE_PAGE_SIZE",
+   "max": 1000,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "sso",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "SCIM_ROTATION_GRACE_HOURS",
+   "max": 720,
+   "max_length": null,
+   "min": 0,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "sso",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "SCIM_SIGNATURE_TOLERANCE_SECONDS",
+   "max": 86400,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "sso",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "SCIM_WEBHOOK_URL",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "sso",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "url"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "SIGNATURE_QUESTION_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "SSO_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "auth",
+    "backend",
+    "webapp"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "sso",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "SSO_HTTP_TIMEOUT_SECONDS",
+   "max": 120,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "auth",
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "sso",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "float"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "SSO_MAX_CONNECTIONS_PER_WORKSPACE",
+   "max": 100,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "sso",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": true,
+   "key": "SSO_POLIS_API_KEY",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "sso",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "SSO_POLIS_INTERNAL_URL",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "auth",
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "sso",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "url"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "SSO_POLIS_PRODUCT",
+   "max": null,
+   "max_length": 100,
+   "min": null,
+   "readers": [
+    "auth",
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "sso",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "SSO_POLIS_URL",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "auth",
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "sso",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "url"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "SSO_REDIRECT_URI",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "auth",
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "sso",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "url"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "SSO_SAML_AUDIENCE",
+   "max": null,
+   "max_length": 500,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "sso",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "SUBMISSIONS_API_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "features",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "token",
+   "is_secret": true,
+   "key": "TEMPORAL_API_KEY",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "auth_keys",
+   "store_backed": true,
+   "tier": "T4",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "TOTP_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "security",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": true,
+   "key": "UMAMI_PASSWORD",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "analytics",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "UMAMI_URL",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "analytics",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "url"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "UMAMI_USERNAME",
+   "max": null,
+   "max_length": 200,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "analytics",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "UMAMI_WEBSITE_ID",
+   "max": null,
+   "max_length": 100,
+   "min": null,
+   "readers": [
+    "backend",
+    "webapp"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "analytics",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "UMAMI_WEBSITE_NAME",
+   "max": null,
+   "max_length": 100,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "analytics",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": true,
+   "key": "UNSPLASH_ACCESS_KEY",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend",
+    "webapp"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "integrations",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "UNSPLASH_BASE_URL",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "integrations",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "url"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "UNSPLASH_PER_PAGE",
+   "max": 100,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "integrations",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "VERIFIED_DOMAINS_DNS_TIMEOUT_S",
+   "max": 60,
+   "max_length": null,
+   "min": 0.5,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "domains",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "float"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "VERIFIED_DOMAINS_LOSS_AFTER_FAILED_CHECKS",
+   "max": 100,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "domains",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "VERIFIED_DOMAINS_MAX_PER_WORKSPACE",
+   "max": 1000,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "domains",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "ip_list",
+   "is_secret": false,
+   "key": "VERIFIED_DOMAINS_NAMESERVERS",
+   "max": null,
+   "max_length": 500,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "domains",
+   "store_backed": true,
+   "tier": "T3",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "VERIFIED_DOMAINS_RECHECK_INTERVAL_HOURS",
+   "max": 720,
+   "max_length": null,
+   "min": 1,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "domains",
+   "store_backed": true,
+   "tier": "T1",
+   "type": "int"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "VERIFIED_DOMAINS_RESERVED",
+   "max": null,
+   "max_length": 4000,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "domains",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "str"
+  },
+  {
+   "choices": [],
+   "format": "",
+   "is_secret": false,
+   "key": "WEBHOOKS_ENABLED",
+   "max": null,
+   "max_length": null,
+   "min": null,
+   "readers": [
+    "backend"
+   ],
+   "reload": "R",
+   "retired_readers": [],
+   "section": "webhooks",
+   "store_backed": true,
+   "tier": "T2",
+   "type": "bool"
+  }
+ ]
+}

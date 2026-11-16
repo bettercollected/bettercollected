@@ -1,0 +1,67 @@
+{
+ "group": "permissions",
+ "description": "SSO on in the store and in the environment off; TOTP on in the store, nothing in the environment.",
+ "store": {
+  "SSO_ENABLED": true,
+  "TOTP_ENABLED": true
+ },
+ "env": {
+  "SSO_ENABLED": "no"
+ },
+ "cases": [
+  {
+   "name": "store-mixed:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "both_owner",
+     "both_admin",
+     "both_owner_mfa",
+     "both_admin_apikey",
+     "both_admin_sso",
+     "dis_both_owner",
+     "dis_both_owner_mfa",
+     "totp_owner",
+     "sso_owner",
+     "owner",
+     "viewer",
+     "stranger"
+    ],
+    "w": [
+     "totp",
+     "sso",
+     "both",
+     "dis_both",
+     "main"
+    ]
+   }
+  },
+  {
+   "name": "store-mixed-rust:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "owner",
+     "viewer",
+     "stranger",
+     "totp_owner",
+     "totp_admin",
+     "totp_owner_mfa"
+    ],
+    "w": [
+     "main",
+     "totp"
+    ]
+   },
+   "served_by": "rust"
+  }
+ ]
+}

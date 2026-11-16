@@ -4,8 +4,17 @@
       "group": "permissions",              # the BC_RUST_ROUTES name this file exercises
       "description": "...",
       "env": {"TOTP_ENABLED": "true"},     # set for BOTH servers; files with the same env share a run
-      "python_env": {"SSO_ENABLED": "true"}, # set for the Python backend ONLY: what Python knows and the Rust
-                                           # edge cannot see (a setting held in the settings store)
+      "python_env": {"SSO_ENABLED": "true"}, # set for the Python backend ONLY (a difference to look at on purpose)
+      "rust_env": {"SETTINGS_MASTER_KEY": null}, # set for the Rust edge ONLY (null removes it): "@RANDOM_KEY" is a
+                                           # fresh master key, "@EDGE_ROLE_URL" the database URL of a role that
+                                           # can read the application's tables but not the settings store
+      "store": {"SSO_ENABLED": true},      # rows written to the settings store the way the admin portal's writer
+                                           # does (one-time import, signed and sealed); "@ENV:NAME" is the
+                                           # value of that variable of the run (a throw-away secret)
+      "tamper": [{"op": "value", "key": "SSO_ENABLED", "value": false}],   # then changed in the database
+                                           # without signing again: "value", "blob" (a sealed secret),
+                                           # "manifest_sig" (the signed manifest)
+      "expect_start": "refused",           # both servers must refuse to start (no cases are sent)
       "defaults": {"served_by": "rust"},   # merged into every case
       "cases": [
         {
@@ -74,6 +83,10 @@ class CorpusFile:
     env: dict
     python_env: dict
     cases: list
+    rust_env: dict = field(default_factory=dict)
+    store: Optional[dict] = None  # None: the settings store is not touched (empty)
+    tamper: list = field(default_factory=list)
+    expect_start: Optional[str] = None
 
 
 def _lookup(fixture: dict, dotted: str) -> Any:
@@ -180,9 +193,25 @@ def load_file(path: Path, fixture: dict) -> CorpusFile:
         if case.name in seen:
             raise CorpusError(f"{path.name}: two cases are named {case.name!r}")
         seen.add(case.name)
-    env = {str(k): str(v) for k, v in (raw.get("env") or {}).items()}
+    # a null removes the variable from the run's environment (a stack that keeps it in the store only)
+    env = {str(k): (None if v is None else str(v)) for k, v in (raw.get("env") or {}).items()}
     python_env = {str(k): str(v) for k, v in (raw.get("python_env") or {}).items()}
-    return CorpusFile(str(path), group, raw.get("description", ""), env, python_env, cases)
+    rust_env = {str(k): (None if v is None else str(v)) for k, v in (raw.get("rust_env") or {}).items()}
+    store = raw.get("store")
+    if store is not None and not isinstance(store, dict):
+        raise CorpusError(f"{path.name}: store must be an object of key: value")
+    tamper = raw.get("tamper") or []
+    for step in tamper:
+        if step.get("op") not in ("value", "blob", "manifest_sig") or (step["op"] != "manifest_sig" and "key" not in step):
+            raise CorpusError(f"{path.name}: unknown tamper step {step}")
+    expect_start = raw.get("expect_start")
+    if expect_start not in (None, "refused"):
+        raise CorpusError(f"{path.name}: expect_start can only be 'refused'")
+    if expect_start and cases:
+        raise CorpusError(f"{path.name}: a file that expects a refused start has no cases")
+    if tamper and store is None:
+        raise CorpusError(f"{path.name}: tamper needs a store")
+    return CorpusFile(str(path), group, raw.get("description", ""), env, python_env, cases, rust_env, store, tamper, expect_start)
 
 
 def load_dir(directory: Path, fixture: dict, only_groups: Optional[set] = None) -> list:

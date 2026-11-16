@@ -1,0 +1,11 @@
+{
+ "group": "permissions",
+ "description": "SETTINGS_STORE=required over a store nothing was ever written to, the signing secret in neither: both refuse to start.",
+ "store": {},
+ "env": {
+  "AUTH_JWT_SECRET": null,
+  "SETTINGS_STORE": "required"
+ },
+ "expect_start": "refused",
+ "cases": []
+}

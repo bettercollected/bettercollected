@@ -49,16 +49,26 @@ pub fn router(state: AppState) -> Router {
         {
             continue;
         }
-        if group.needs_policy_switches && !state.cfg.policy_switches_explicit {
-            // fail closed: the switches may be on in the settings store, which
-            // is not read here, and the answer would then be wrong
-            tracing::warn!(
-                "route group {} stays on the Python backend: it depends on SSO_ENABLED and \
-                 TOTP_ENABLED, which Python also reads from the settings store; set both in \
-                 the environment of this service to serve it from here",
-                group.name
-            );
-            continue;
+        if group.needs_policy_switches {
+            let unknown = state.cfg.unknown_policy_switches();
+            if !unknown.is_empty() {
+                // fail closed: the switch may be on in the store this service could
+                // not read or trust, and the answer would then be wrong. Class R: the
+                // decision is taken at start, as the switch's own value is
+                tracing::warn!(
+                    "route group {} stays on the Python backend: {} {} not known here ({}); set {} in the environment of this service, or give it access to the settings store",
+                    group.name,
+                    unknown
+                        .iter()
+                        .map(|(n, _)| *n)
+                        .collect::<Vec<_>>()
+                        .join(" and "),
+                    if unknown.len() == 1 { "is" } else { "are" },
+                    unknown.first().map_or("", |(_, why)| why.as_str()),
+                    if unknown.len() == 1 { "it" } else { "them" },
+                );
+                continue;
+            }
         }
         router = (group.mount)(router, &state);
     }
