@@ -1,19 +1,22 @@
 //! `app.workspace_audit_events` (`WorkspaceAuditEventDocument`): ids and enum
 //! values only, never a name, an address or a value. The time is `created_at`.
+//!
+//! The class has no `bson_encoders`, so its datetimes are stored as BSON dates
+//! (`{"$date": "...Z"}`, milliseconds), not as ISO strings.
 
 use serde::{Deserialize, Serialize};
 
 use crate::id::RecordId;
 use crate::impl_record;
-use crate::stamp::Stamp;
+use crate::stamp::BsonDate;
 use crate::value::lax;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct WorkspaceAuditEvent {
     #[serde(rename = "_id", default)]
     pub id: Option<RecordId>,
-    pub created_at: Option<Stamp>,
-    pub updated_at: Option<Stamp>,
+    pub created_at: Option<BsonDate>,
+    pub updated_at: Option<BsonDate>,
 
     pub workspace_id: RecordId,
     pub user_id: String,
@@ -120,4 +123,4 @@ pub struct WorkspaceAuditEvent {
     pub export_filters: Option<Vec<String>>,
 }
 
-impl_record!(WorkspaceAuditEvent, "workspace_audit_events", Stamp);
+impl_record!(WorkspaceAuditEvent, "workspace_audit_events", BsonDate);
