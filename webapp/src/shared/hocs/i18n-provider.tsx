@@ -35,6 +35,9 @@ if (!i18n.isInitialized) {
         fallbackLng: 'en',
         ns: ['common', 'builder', 'respondent'],
         defaultNS: 'common',
+        // i18next 27 made an empty translation fall back like a missing one; keep the 26 behaviour (an empty
+        // string renders as nothing) so no text changes with the upgrade
+        returnEmptyString: true,
         interpolation: {
             escapeValue: false
         },
