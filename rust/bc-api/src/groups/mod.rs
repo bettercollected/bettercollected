@@ -40,6 +40,14 @@ pub type Shared = Arc<AppState>;
 pub struct Group {
     /// The name used in `BC_RUST_ROUTES` (lower case).
     pub name: &'static str,
+    /// The group's answers depend on `SSO_ENABLED` / `TOTP_ENABLED`. Both are
+    /// class R settings of the settings store: the group is served by Rust only
+    /// when the origin of EACH is known (explicit in the environment, or read from
+    /// the verified store or snapshot, see `bc_config::Origin`). When either is
+    /// only a default because this service could not read or trust the store,
+    /// Python, which may hold the switch on, answers every request of the group.
+    /// A group that does not depend on them says `false`.
+    pub needs_policy_switches: bool,
     /// Adds the group's routes to the router.
     pub mount: fn(Router<Shared>, &Shared) -> Router<Shared>,
 }
@@ -47,6 +55,7 @@ pub struct Group {
 /// Every group that exists. Only the ones named in `BC_RUST_ROUTES` are mounted.
 pub const ALL: &[Group] = &[Group {
     name: "permissions",
+    needs_policy_switches: true,
     mount: permissions::mount,
 }];
 

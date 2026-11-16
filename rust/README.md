@@ -93,6 +93,14 @@ therefore gets the same answers from this service and from Python.
   store keys, and `API_TRUSTED_PROXIES` is not read from the store because Python's loader does not read it either.
 * Class R settings are read once, at start. Class H settings are not secret and can be read live
   (`Config::store`, `StoreRuntime::live_value`); a poller applies a new manifest revision every ten seconds.
+* Where a value came from is tracked per setting (`Config::origins`, `bc_config::Origin`): `Env`, `Store`, `Snapshot`,
+  `DefaultStoreOk` (the store was read and verified and holds nothing for it) or `DefaultStoreUnavailable` (no value
+  in the environment, and the store was not read or not trusted here: no master key at this service, `SETTINGS_STORE=off`,
+  an untrusted manifest, a role without SELECT on the views). A decision that depends on a setting must not be taken
+  from a value of unknown origin, because Python, which may read the store, can hold another one.
+  The route group `permissions` depends on `SSO_ENABLED` and `TOTP_ENABLED`: it is served by Rust only when the origin
+  of each is known; otherwise every request for it is forwarded to Python and the edge says which switch and why at
+  start. Both are class R settings, so the decision is taken at start, as the value itself is.
 * The service does not report its state back to the store (`settings.report_state`) yet, so the admin portal does
   not list it among the running services.
 

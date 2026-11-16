@@ -32,6 +32,33 @@ pub struct Flags {
     pub app_theme_pigment: bool,
 }
 
+/// The environment names of the switches, in the order of the fields.
+pub const NAMES: &[&str] = &[
+    "FIELD_RULES_ENABLED",
+    "CHOICE_LOGIC_ENABLED",
+    "SAVE_DRAFTS_ENABLED",
+    "CAPTCHA_ENABLED",
+    "CSV_IMPORT_ENABLED",
+    "NEW_QUESTION_TYPES_ENABLED",
+    "ADDRESS_QUESTION_ENABLED",
+    "ADDRESS_LOOKUP_ENABLED",
+    "SIGNATURE_QUESTION_ENABLED",
+    "OPTION_SOURCES_ENABLED",
+    "REUSABLE_SECTIONS_ENABLED",
+    "LAYOUT_CONTAINERS_ENABLED",
+    "DAYBREAK_PRESET_ENABLED",
+    "FORM_REVISIONS_UI_ENABLED",
+    "AUDIT_LOG_UI_ENABLED",
+    "RESPONSE_REVISIONS_ENABLED",
+    "SUBMISSIONS_API_ENABLED",
+    "FORM_EMBED_ENABLED",
+    "FORM_ACCESS_ENABLED",
+    "FORM_PROMOTION_ENABLED",
+    "API_KEY_ROLES_ENABLED",
+    "REPORTING_ENABLED",
+    "APP_THEME_PIGMENT_ENABLED",
+];
+
 impl Flags {
     /// `offered_gated_presets`: the gated presets whose switch is on, in the
     /// order of `constants/themes.py` `GATED_PRESETS`.
@@ -89,6 +116,16 @@ mod tests {
             Flags::from_settings(&settings(&[])).unwrap(),
             Flags::default()
         );
+    }
+
+    #[test]
+    fn every_name_is_read_by_from_settings() {
+        // each name, set alone, turns exactly one switch on
+        for name in NAMES {
+            let flags = Flags::from_settings(&settings(&[(name, "true")])).unwrap();
+            assert_ne!(flags, Flags::default(), "{name}");
+        }
+        assert_eq!(NAMES.len(), 23);
     }
 
     #[test]

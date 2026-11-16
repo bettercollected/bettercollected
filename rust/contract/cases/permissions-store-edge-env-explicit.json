@@ -1,0 +1,49 @@
+{
+ "group": "permissions",
+ "description": "The edge cannot read the store (no master key) but both switches are explicit in the environment, which wins on both sides: served by Rust, equal.",
+ "store": {
+  "SSO_ENABLED": true,
+  "TOTP_ENABLED": true
+ },
+ "rust_env": {
+  "SETTINGS_MASTER_KEY": null
+ },
+ "env": {
+  "SSO_ENABLED": "false",
+  "TOTP_ENABLED": "off"
+ },
+ "cases": [
+  {
+   "name": "edge-env-explicit:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "both_owner",
+     "both_admin",
+     "both_owner_mfa",
+     "both_admin_apikey",
+     "both_admin_sso",
+     "dis_both_owner",
+     "dis_both_owner_mfa",
+     "totp_owner",
+     "sso_owner",
+     "owner",
+     "viewer",
+     "stranger"
+    ],
+    "w": [
+     "totp",
+     "sso",
+     "both",
+     "dis_both",
+     "main"
+    ]
+   },
+   "served_by": "rust"
+  }
+ ]
+}

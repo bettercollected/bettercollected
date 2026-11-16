@@ -1,0 +1,44 @@
+{
+ "group": "permissions",
+ "description": "Only TOTP_ENABLED is on in the store (an authenticator is required of staff), the edge has no master key: the group stays on Python, which asks for the second factor.",
+ "store": {
+  "TOTP_ENABLED": true
+ },
+ "rust_env": {
+  "SETTINGS_MASTER_KEY": null
+ },
+ "cases": [
+  {
+   "name": "edge-no-key-totp:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "both_owner",
+     "both_admin",
+     "both_owner_mfa",
+     "both_admin_apikey",
+     "both_admin_sso",
+     "dis_both_owner",
+     "dis_both_owner_mfa",
+     "totp_owner",
+     "sso_owner",
+     "owner",
+     "viewer",
+     "stranger"
+    ],
+    "w": [
+     "totp",
+     "sso",
+     "both",
+     "dis_both",
+     "main"
+    ]
+   },
+   "served_by": "python"
+  }
+ ]
+}

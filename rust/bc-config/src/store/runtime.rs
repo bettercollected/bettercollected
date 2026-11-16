@@ -40,7 +40,7 @@ use super::registry::{Registry, Reload, coerce};
 use super::verify::{
     RawSnapshot, Rejection, Tracker, UNTRUSTED, Verification, VerifiedSettings, verify_snapshot,
 };
-use crate::source::Settings;
+use crate::source::{Settings, StoreStatus};
 
 /// The service must not start. The message names keys, never values.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -171,6 +171,8 @@ pub enum Origin {
 }
 
 struct State {
+    /// Why the store is not the source of this process's values (when it is not).
+    reason: String,
     tracker: Tracker,
     current: VerifiedSettings,
     origin: Origin,
@@ -234,6 +236,7 @@ impl StoreRuntime {
             required_env_keys: required_env_keys.iter().map(|k| (*k).to_string()).collect(),
             source,
             state: Mutex::new(State {
+                reason: "the settings store was not read".into(),
                 tracker: Tracker::default(),
                 current: VerifiedSettings::default(),
                 origin: Origin::None,
@@ -255,6 +258,21 @@ impl StoreRuntime {
 
     pub fn origin(&self) -> Origin {
         locked(&self.state).origin
+    }
+
+    /// What became of the store at start: read and verified, the signed snapshot
+    /// standing in, or neither (with the reason).
+    pub fn status(&self) -> StoreStatus {
+        let state = locked(&self.state);
+        match state.origin {
+            Origin::Store => StoreStatus::Verified,
+            Origin::Snapshot => StoreStatus::Snapshot,
+            Origin::None => StoreStatus::Unavailable(state.reason.clone()),
+        }
+    }
+
+    fn set_reason(&self, why: &str) {
+        locked(&self.state).reason = why.to_string();
     }
 
     pub fn restart_pending(&self) -> bool {
@@ -538,15 +556,19 @@ impl StoreRuntime {
             );
         }
         if self.source.is_none() {
+            self.set_reason("no database to read the settings store from");
             return self.start_without_store("no database");
         }
         let Ok(raw) = self.fetch().await else {
+            self.set_reason("the settings store could not be read (no access to its views, or the database is down) and no usable snapshot exists");
             return self.start_from_snapshot();
         };
         self.refuse_rolled_back_store(&raw)?;
         if self.apply(&raw, true, Origin::Store, true)? {
             self.refuse_empty_store()?;
             self.write_disk(&raw);
+        } else {
+            self.set_reason("the signed manifest of the settings store is not trusted here");
         }
         tracing::info!(
             "settings loaded from the store: revision {}, {} overridden by the environment",
@@ -611,6 +633,7 @@ impl StoreRuntime {
             return self.start_without_store(&format!("snapshot {why}"));
         };
         if !self.apply(&raw, true, Origin::Snapshot, false)? {
+            self.set_reason("the settings store could not be read and the snapshot is not trusted");
             return self.start_without_store("snapshot not trusted");
         }
         tracing::warn!(
@@ -799,6 +822,22 @@ fn jitter(max: Duration) -> Duration {
     h.write_u64(0);
     let share = f64::from(u32::try_from(h.finish() % 1000).unwrap_or(0)) / 1000.0;
     max.mul_f64(share)
+}
+
+/// Why the store is not read at all by a service with this environment.
+pub fn why_inactive<H: std::hash::BuildHasher>(env_vars: &HashMap<String, String, H>) -> String {
+    let env = Settings::from_map(
+        env_vars
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect(),
+    );
+    match LoaderConfig::from_env(&env) {
+        Ok(c) if c.mode == Mode::Off => "SETTINGS_STORE=off at this service".into(),
+        Ok(c) if c.master_key.is_empty() => "no SETTINGS_MASTER_KEY at this service".into(),
+        Ok(_) => "no DATABASE_URL at this service".into(),
+        Err(_) => "the settings store configuration is invalid".into(),
+    }
 }
 
 /// Loads the process's snapshot. `None` when the store is off (`SETTINGS_STORE=off`,

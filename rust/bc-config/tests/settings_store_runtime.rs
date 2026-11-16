@@ -835,7 +835,11 @@ async fn no_value_reaches_the_logs_or_the_error_and_debug_text() {
     .await;
     let rt = cfg.store.clone().unwrap();
     store.set(signed(
-        vec![row_for("API_FLOW_EVENTS_PER_WINDOW", 1, json!(31337))],
+        vec![row_for(
+            "DEFAULT_WORKSPACE_ID",
+            1,
+            json!("polled-text-value-xyz"),
+        )],
         2,
     ));
     let _ = rt.poll_once().await;
@@ -854,7 +858,7 @@ async fn no_value_reaches_the_logs_or_the_error_and_debug_text() {
         "super-secret-switch-value",
         "plain-text-value-1",
         "pw-not-logged",
-        "31337",
+        "polled-text-value-xyz",
         support::master().as_str(),
     ] {
         assert!(
@@ -862,4 +866,170 @@ async fn no_value_reaches_the_logs_or_the_error_and_debug_text() {
             "a value reached the logs or an error: {needle}"
         );
     }
+}
+
+// ------------------------------------------------------ origin of a value
+
+use bc_config::{Origin, StoreStatus};
+
+fn unknown(cfg: &Config) -> Vec<&'static str> {
+    cfg.unknown_policy_switches()
+        .into_iter()
+        .map(|(n, _)| n)
+        .collect()
+}
+
+fn why(cfg: &Config) -> String {
+    match &cfg.store_status {
+        StoreStatus::Unavailable(why) => why.clone(),
+        other => format!("{other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn the_origin_of_a_switch_is_env_store_or_a_default_with_a_store_that_was_read() {
+    let store = FakeStore::new(store_with(vec![row_for("SSO_ENABLED", 1, json!(true))], 3));
+    let cfg = load(
+        &[
+            ("TOTP_ENABLED", "off"),
+            ("SETTINGS_SNAPSHOT_DIR", &dir("origin1")),
+        ],
+        &store,
+    )
+    .await
+    .unwrap();
+    assert_eq!(cfg.origins["SSO_ENABLED"], Origin::Store);
+    assert_eq!(cfg.origins["TOTP_ENABLED"], Origin::Env);
+    assert_eq!(
+        cfg.origins["CAPTCHA_ENABLED"],
+        Origin::DefaultStoreOk,
+        "read, and nothing there"
+    );
+    assert_eq!(cfg.store_status, StoreStatus::Verified);
+    assert_eq!(unknown(&cfg), Vec::<&str>::new());
+    // a store never written is read and trusted: defaults are right
+    let empty = RawSnapshot {
+        rows: vec![],
+        manifest: Some(bc_config::store::canonical::Manifest {
+            revision: 0,
+            entries: std::collections::BTreeMap::new(),
+            sig: String::new(),
+        }),
+        malformed: vec![],
+    };
+    let cfg = load(
+        &[
+            (
+                "AUTH_JWT_SECRET",
+                "environment-secret-0123456789abcdef0123456789",
+            ),
+            ("SETTINGS_SNAPSHOT_DIR", &dir("origin2")),
+        ],
+        &FakeStore::new(empty),
+    )
+    .await
+    .unwrap();
+    assert_eq!(cfg.origins["SSO_ENABLED"], Origin::DefaultStoreOk);
+    assert_eq!(unknown(&cfg), Vec::<&str>::new());
+    // a refused row (the manifest is fine) leaves the default, as it does in Python
+    let mut tampered = golden_snapshot();
+    for row in &mut tampered.rows {
+        if row.key == "SSO_ENABLED" {
+            row.value = Some(json!(true));
+        }
+    }
+    let cfg = load(
+        &[("SETTINGS_SNAPSHOT_DIR", &dir("origin3"))],
+        &FakeStore::new(tampered),
+    )
+    .await
+    .unwrap();
+    assert_eq!(cfg.origins["SSO_ENABLED"], Origin::DefaultStoreOk);
+}
+
+#[tokio::test]
+async fn a_default_is_unknown_when_the_store_was_not_read_or_not_trusted_here() {
+    let secret = (
+        "AUTH_JWT_SECRET",
+        "environment-secret-0123456789abcdef0123456789",
+    );
+    // 1. auto, no master key at this service (Python may have one)
+    let mut vars = env(&[secret]);
+    vars.remove("SETTINGS_MASTER_KEY");
+    let cfg = Config::load_with(vars, None, &[]).await.unwrap();
+    assert_eq!(cfg.origins["SSO_ENABLED"], Origin::DefaultStoreUnavailable);
+    assert_eq!(unknown(&cfg), vec!["SSO_ENABLED", "TOTP_ENABLED"]);
+    assert!(why(&cfg).contains("SETTINGS_MASTER_KEY"), "{}", why(&cfg));
+    // 2. the store is off here
+    let cfg = Config::load_with(env(&[secret, ("SETTINGS_STORE", "off")]), None, &[])
+        .await
+        .unwrap();
+    assert_eq!(unknown(&cfg).len(), 2);
+    assert!(why(&cfg).contains("SETTINGS_STORE=off"));
+    // 3. another master key: the manifest is not trusted
+    let other = base64::engine::general_purpose::STANDARD.encode((20u8..68).collect::<Vec<_>>());
+    let cfg = load(
+        &[
+            secret,
+            ("SETTINGS_MASTER_KEY", other.as_str()),
+            ("SETTINGS_SNAPSHOT_DIR", &dir("unk3")),
+        ],
+        &FakeStore::new(golden_snapshot()),
+    )
+    .await
+    .unwrap();
+    assert_eq!(unknown(&cfg).len(), 2);
+    assert!(why(&cfg).contains("manifest"), "{}", why(&cfg));
+    // 4. the views cannot be read and there is no snapshot
+    let cfg = load(
+        &[secret, ("SETTINGS_SNAPSHOT_DIR", &dir("unk4"))],
+        &FakeStore::down(),
+    )
+    .await
+    .unwrap();
+    assert_eq!(unknown(&cfg).len(), 2);
+    assert!(why(&cfg).contains("could not be read"), "{}", why(&cfg));
+    // each switch is judged on its own: one in the environment is not enough
+    let cfg = load(
+        &[
+            secret,
+            ("SSO_ENABLED", "false"),
+            ("SETTINGS_SNAPSHOT_DIR", &dir("unk5")),
+        ],
+        &FakeStore::down(),
+    )
+    .await
+    .unwrap();
+    assert_eq!(unknown(&cfg), vec!["TOTP_ENABLED"]);
+    // both in the environment: known whatever became of the store
+    let cfg = load(
+        &[
+            secret,
+            ("SSO_ENABLED", "false"),
+            ("TOTP_ENABLED", "yes"),
+            ("SETTINGS_SNAPSHOT_DIR", &dir("unk6")),
+        ],
+        &FakeStore::down(),
+    )
+    .await
+    .unwrap();
+    assert_eq!(unknown(&cfg), Vec::<&str>::new());
+    assert_eq!(cfg.origins["TOTP_ENABLED"], Origin::Env);
+}
+
+#[tokio::test]
+async fn the_signed_snapshot_makes_the_origin_known_again() {
+    let snapshots = dir("origin-snap");
+    let store = FakeStore::new(store_with(vec![row_for("TOTP_ENABLED", 1, json!(true))], 3));
+    load(&[("SETTINGS_SNAPSHOT_DIR", &snapshots)], &store)
+        .await
+        .unwrap();
+    let cfg = load(&[("SETTINGS_SNAPSHOT_DIR", &snapshots)], &FakeStore::down())
+        .await
+        .unwrap();
+    assert_eq!(cfg.store_status, StoreStatus::Snapshot);
+    assert_eq!(cfg.origins["TOTP_ENABLED"], Origin::Snapshot);
+    assert_eq!(cfg.origins["SSO_ENABLED"], Origin::DefaultStoreOk);
+    assert!(cfg.totp_enabled);
+    assert_eq!(unknown(&cfg), Vec::<&str>::new());
 }

@@ -37,7 +37,9 @@ pub use edge::EdgeConfig;
 pub use flags::Flags;
 pub use network::NetworkConfig;
 pub use secrets::{KeyRing, Secret};
-pub use source::{EnvSource, MapSource, Settings, SettingsSource, StoreSource};
+pub use source::{
+    EnvSource, MapSource, Origin, Settings, SettingsSource, StoreSource, StoreStatus,
+};
 pub use store::{StoreError, StoreRuntime};
 
 /// A configuration problem. The text names a variable, never a value.
@@ -66,6 +68,13 @@ pub struct Config {
     pub flags: Flags,
     pub sso_enabled: bool,
     pub totp_enabled: bool,
+    /// Where each switch (`SSO_ENABLED`, `TOTP_ENABLED` and the feature switches)
+    /// got its value, or why it is only a default. A decision that depends on a
+    /// switch must not be taken from one whose origin is
+    /// [`Origin::DefaultStoreUnavailable`]: Python may hold another value.
+    pub origins: std::collections::BTreeMap<&'static str, Origin>,
+    /// What became of the settings store at start (the reason for an unknown origin).
+    pub store_status: StoreStatus,
     /// The settings store this configuration was read with; `None` when the
     /// store is off. Class H settings are read live through
     /// [`StoreRuntime::live_value`].
@@ -83,6 +92,7 @@ impl fmt::Debug for Config {
             .field("jwt_ring_members", &self.jwt_ring.len())
             .field("flags", &self.flags)
             .field("store", &self.store)
+            .field("store_status", &self.store_status)
             .field("network", &self.network)
             .field("edge", &self.edge)
             .field("bind", &self.bind)
@@ -152,14 +162,38 @@ impl Config {
         )
         .await
         .map_err(named)?;
+        let status = match &runtime {
+            Some(runtime) => runtime.status(),
+            None => StoreStatus::Unavailable(store::runtime::why_inactive(&env)),
+        };
         let mut layers: Vec<Box<dyn SettingsSource>> = vec![Box::new(MapSource::new(env))];
         if let Some(runtime) = &runtime {
             let values = runtime.freeze().map_err(named)?;
             layers.push(Box::new(StoreSource::new(values)));
         }
-        let mut cfg = Config::from_settings_with_denylist(&Settings::new(layers), denylist)?;
+        let mut cfg = Config::from_settings_with_denylist(
+            &Settings::new(layers).with_store_status(status),
+            denylist,
+        )?;
         cfg.store = runtime;
         Ok(cfg)
+    }
+
+    /// The two policy switches whose origin is unknown here (neither in the
+    /// environment nor read from a verified store or snapshot), with the reason.
+    /// A route group whose answers depend on `SSO_ENABLED` and `TOTP_ENABLED`
+    /// (`bc_api::groups::Group::needs_policy_switches`) is served by Rust only when
+    /// this is empty: otherwise Python, which may read them from the store, decides.
+    pub fn unknown_policy_switches(&self) -> Vec<(&'static str, String)> {
+        let why = match &self.store_status {
+            StoreStatus::Unavailable(why) => why.clone(),
+            _ => String::new(),
+        };
+        ["SSO_ENABLED", "TOTP_ENABLED"]
+            .into_iter()
+            .filter(|name| !self.origins.get(name).is_some_and(|o| o.is_known()))
+            .map(|name| (name, why.clone()))
+            .collect()
     }
 
     pub fn from_settings(settings: &Settings) -> Result<Config, ConfigError> {
@@ -212,6 +246,12 @@ impl Config {
             flags: Flags::from_settings(settings)?,
             sso_enabled: settings.flag("SSO_ENABLED")?.unwrap_or(false),
             totp_enabled: settings.flag("TOTP_ENABLED")?.unwrap_or(false),
+            origins: std::iter::once("SSO_ENABLED")
+                .chain(std::iter::once("TOTP_ENABLED"))
+                .chain(flags::NAMES.iter().copied())
+                .map(|name| (name, settings.origin(name)))
+                .collect(),
+            store_status: settings.store_status().clone(),
             store: None,
             network: NetworkConfig::from_settings(settings)?,
             edge: EdgeConfig::from_settings(settings)?,

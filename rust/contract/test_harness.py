@@ -210,7 +210,9 @@ def test_store_rows_tampering_and_refused_starts_are_read_from_the_corpus_file(t
 
     loaded = load({"env": {"A": None, "B": 1}, "store": {"SSO_ENABLED": True}, "tamper": [{"op": "manifest_sig"}, {"op": "value", "key": "K", "value": 1}]})
     assert loaded.env == {"A": None, "B": "1"} and loaded.store == {"SSO_ENABLED": True} and len(loaded.tamper) == 2
-    assert load({}).store is None and load({}).expect_start is None
+    assert load({}).store is None and load({}).expect_start is None and load({}).rust_env == {}
+    edge = load({"rust_env": {"SETTINGS_MASTER_KEY": None, "DATABASE_URL": "@EDGE_ROLE_URL", "N": 3}})
+    assert edge.rust_env == {"SETTINGS_MASTER_KEY": None, "DATABASE_URL": "@EDGE_ROLE_URL", "N": "3"}
     assert load({"store": {}, "expect_start": "refused"}).expect_start == "refused"
     for bad in (
         {"store": ["x"]},
@@ -235,3 +237,13 @@ def test_the_settings_registry_file_of_the_rust_reader_is_current():
     assert settings_registry.OUT.read_text() == built, (
         "run `uv run --project backend python rust/contract/settings_registry.py`"
     )
+
+
+def test_the_placeholders_of_the_edge_environment_are_resolved():
+    import run
+
+    out = run.resolve_rust_env(
+        {"A": None, "B": "plain", "C": "@RANDOM_KEY", "D": "@EDGE_ROLE_URL"}, {"edge_role_url": "postgresql://r:p@h/d"}
+    )
+    assert out["A"] is None and out["B"] == "plain" and out["D"] == "postgresql://r:p@h/d"
+    assert len(out["C"]) >= 64 and out["C"] != run.resolve_rust_env({"C": "@RANDOM_KEY"}, {})["C"]

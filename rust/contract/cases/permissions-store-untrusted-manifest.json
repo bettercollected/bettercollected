@@ -1,6 +1,6 @@
 {
  "group": "permissions",
- "description": "The signed manifest was altered: no row of the store is trusted, on both sides (SettingsStore auto: the environment and defaults are all there is).",
+ "description": "The signed manifest was altered: no row of the store is trusted, on both sides, and the edge cannot tell whether a switch is on for Python, so the group stays on Python and the answers are equal.",
  "store": {
   "SSO_ENABLED": true,
   "TOTP_ENABLED": true
@@ -40,30 +40,8 @@
      "dis_both",
      "main"
     ]
-   }
-  },
-  {
-   "name": "store-untrusted-rust:{who}@{w}",
-   "method": "GET",
-   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
-   "headers": {
-    "Cookie": "Authorization={token.{who}}"
    },
-   "matrix": {
-    "who": [
-     "owner",
-     "viewer",
-     "stranger",
-     "totp_owner",
-     "totp_admin",
-     "totp_owner_mfa"
-    ],
-    "w": [
-     "main",
-     "totp"
-    ]
-   },
-   "served_by": "rust"
+   "served_by": "python"
   }
  ]
 }

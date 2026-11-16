@@ -1,0 +1,45 @@
+{
+ "group": "permissions",
+ "description": "The edge connects as a role that reads the application's tables but has no access to the settings store's views: it cannot read the store, so the group stays on Python and the answers are equal.",
+ "store": {
+  "SSO_ENABLED": true,
+  "TOTP_ENABLED": true
+ },
+ "rust_env": {
+  "DATABASE_URL": "@EDGE_ROLE_URL"
+ },
+ "cases": [
+  {
+   "name": "edge-no-select:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "both_owner",
+     "both_admin",
+     "both_owner_mfa",
+     "both_admin_apikey",
+     "both_admin_sso",
+     "dis_both_owner",
+     "dis_both_owner_mfa",
+     "totp_owner",
+     "sso_owner",
+     "owner",
+     "viewer",
+     "stranger"
+    ],
+    "w": [
+     "totp",
+     "sso",
+     "both",
+     "dis_both",
+     "main"
+    ]
+   },
+   "served_by": "python"
+  }
+ ]
+}

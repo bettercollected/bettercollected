@@ -1,0 +1,45 @@
+{
+ "group": "permissions",
+ "description": "The switches are on in the store and Python reads them, but the edge has no SETTINGS_MASTER_KEY (auto mode): the edge cannot know them, so the group stays on Python and the answers are equal.",
+ "store": {
+  "SSO_ENABLED": true,
+  "TOTP_ENABLED": true
+ },
+ "rust_env": {
+  "SETTINGS_MASTER_KEY": null
+ },
+ "cases": [
+  {
+   "name": "edge-no-key:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "both_owner",
+     "both_admin",
+     "both_owner_mfa",
+     "both_admin_apikey",
+     "both_admin_sso",
+     "dis_both_owner",
+     "dis_both_owner_mfa",
+     "totp_owner",
+     "sso_owner",
+     "owner",
+     "viewer",
+     "stranger"
+    ],
+    "w": [
+     "totp",
+     "sso",
+     "both",
+     "dis_both",
+     "main"
+    ]
+   },
+   "served_by": "python"
+  }
+ ]
+}

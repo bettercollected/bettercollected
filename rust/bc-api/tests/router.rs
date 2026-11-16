@@ -19,8 +19,9 @@ use axum::Router;
 use axum::http::{Method, StatusCode, header};
 use axum::response::IntoResponse;
 use axum::routing::any;
+use bc_config::StoreStatus;
 use jsonwebtoken::{EncodingKey, Header, encode};
-use support::{SECRET, call, edge, get, serve};
+use support::{SECRET, call, edge, edge_with_store, get, serve};
 
 const PATH: &str = "/api/v1/workspaces/6a0000000000000000000009/permissions";
 
@@ -87,30 +88,78 @@ async fn with_the_group_on_rust_answers_and_python_is_not_asked() {
     assert_eq!(seen.load(Ordering::SeqCst), 0);
 }
 
+fn down() -> StoreStatus {
+    StoreStatus::Unavailable("no SETTINGS_MASTER_KEY at this service".into())
+}
+
 #[tokio::test]
-async fn the_policy_switches_need_no_environment_value_for_rust_to_serve() {
-    // unset, empty or in any spelling the Python parser accepts: the store (read at
-    // start, see bc-config) is consulted, and with none the switches are off
+async fn a_policy_switch_with_no_known_origin_keeps_the_group_on_python() {
+    // the store could not be read or trusted here, so a switch that is not in the
+    // environment may be on for Python: fail closed, one switch or both
+    for (sso, totp) in [("", ""), ("false", ""), ("", "true"), ("  ", "\"\"")] {
+        let (upstream, seen) = python().await;
+        let edge = edge_with_store(
+            upstream,
+            &[
+                ("BC_RUST_ROUTES", "permissions"),
+                ("BC_SERVED_BY_HEADER", "true"),
+                ("SSO_ENABLED", sso),
+                ("TOTP_ENABLED", totp),
+            ],
+            down(),
+        )
+        .await;
+        let a = get(edge, PATH, &[]).await;
+        assert_eq!(a.status.as_u16(), 299, "{sso:?} {totp:?}");
+        assert_eq!(a.headers["x-bc-served-by"], "python");
+        assert_eq!(seen.load(Ordering::SeqCst), 1);
+    }
+}
+
+#[tokio::test]
+async fn explicit_switches_in_any_accepted_spelling_are_served_by_rust_whatever_the_store() {
     for (sso, totp) in [
-        ("", ""),
-        ("false", ""),
-        ("", "true"),
+        ("false", "false"),
         ("off", "yes"),
         ("1", "0"),
         ("TRUE", "n"),
     ] {
+        for status in [down(), StoreStatus::Verified, StoreStatus::Snapshot] {
+            let (upstream, seen) = python().await;
+            let edge = edge_with_store(
+                upstream,
+                &[
+                    ("BC_RUST_ROUTES", "permissions"),
+                    ("SSO_ENABLED", sso),
+                    ("TOTP_ENABLED", totp),
+                ],
+                status,
+            )
+            .await;
+            let a = get(edge, PATH, &[]).await;
+            assert_eq!(a.status, StatusCode::UNAUTHORIZED, "{sso} {totp}");
+            assert_eq!(seen.load(Ordering::SeqCst), 0);
+        }
+    }
+}
+
+#[tokio::test]
+async fn switches_with_no_value_are_served_by_rust_when_the_store_was_read_or_the_snapshot_stood_in()
+ {
+    for status in [StoreStatus::Verified, StoreStatus::Snapshot] {
         let (upstream, seen) = python().await;
-        let edge = edge(
+        let edge = edge_with_store(
             upstream,
             &[
                 ("BC_RUST_ROUTES", "permissions"),
-                ("SSO_ENABLED", sso),
-                ("TOTP_ENABLED", totp),
+                ("SSO_ENABLED", ""),
+                ("TOTP_ENABLED", ""),
             ],
+            status,
         )
         .await;
         let a = get(edge, PATH, &[]).await;
-        assert_eq!(a.status, StatusCode::UNAUTHORIZED, "{sso} {totp}");
+        assert_eq!(a.status, StatusCode::UNAUTHORIZED);
         assert_eq!(seen.load(Ordering::SeqCst), 0);
     }
 }

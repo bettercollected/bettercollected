@@ -130,22 +130,98 @@ pub fn parse_bool(value: &str) -> Option<bool> {
     }
 }
 
+/// Where the value of a setting came from. A setting whose value is only the
+/// default because the settings store could not be read or trusted here is
+/// `DefaultStoreUnavailable`: Python, which may read the store, can hold another
+/// value, so a decision that depends on the setting must not be taken from it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Origin {
+    /// A non-empty value in the environment.
+    Env,
+    /// The verified settings store.
+    Store,
+    /// The verified, signed disk snapshot of the store (the database was down at start).
+    Snapshot,
+    /// No value anywhere, and the store was read and verified: the default is right.
+    DefaultStoreOk,
+    /// No value in the environment, and the store was not read or not trusted.
+    DefaultStoreUnavailable,
+}
+
+impl Origin {
+    /// Whether the value can be relied on to be the one Python resolves.
+    pub fn is_known(self) -> bool {
+        self != Origin::DefaultStoreUnavailable
+    }
+}
+
+/// What became of the settings store at this service's start.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StoreStatus {
+    /// Read and verified.
+    Verified,
+    /// The database could not be read; the verified signed snapshot stood in.
+    Snapshot,
+    /// Not read, or not trusted. The text says why (never a value).
+    Unavailable(String),
+}
+
 /// The layers, in order of precedence.
 pub struct Settings {
     layers: Vec<Box<dyn SettingsSource>>,
+    store: StoreStatus,
 }
 
 impl fmt::Debug for Settings {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Settings")
             .field("layers", &self.layers.len())
+            .field("store", &self.store)
             .finish()
     }
 }
 
 impl Settings {
+    /// Layers with no knowledge of a settings store: a setting with no value
+    /// in the environment has the origin `DefaultStoreUnavailable`.
     pub fn new(layers: Vec<Box<dyn SettingsSource>>) -> Settings {
-        Settings { layers }
+        Settings {
+            layers,
+            store: StoreStatus::Unavailable("the settings store was not read".into()),
+        }
+    }
+
+    /// What became of the settings store (decides the origin of a default).
+    #[must_use]
+    pub fn with_store_status(mut self, status: StoreStatus) -> Settings {
+        self.store = status;
+        self
+    }
+
+    pub fn store_status(&self) -> &StoreStatus {
+        &self.store
+    }
+
+    /// Where the value of `name` comes from, or why it is only a default.
+    pub fn origin(&self, name: &str) -> Origin {
+        for layer in &self.layers {
+            let Some(raw) = layer.get(name) else { continue };
+            if layer.trims() {
+                if normalize(Some(&raw)).is_some() {
+                    return Origin::Env;
+                }
+            } else {
+                return if self.store == StoreStatus::Snapshot {
+                    Origin::Snapshot
+                } else {
+                    Origin::Store
+                };
+            }
+        }
+        match self.store {
+            StoreStatus::Verified | StoreStatus::Snapshot => Origin::DefaultStoreOk,
+            StoreStatus::Unavailable(_) => Origin::DefaultStoreUnavailable,
+        }
     }
 
     /// The process environment as the only layer.
@@ -270,6 +346,71 @@ mod tests {
                 StoreSource::new(HashMap::from([("A".into(), "secret".into())]))
             )
             .contains("secret")
+        );
+    }
+
+    #[test]
+    fn the_origin_of_a_setting_says_where_it_came_from_or_why_it_is_only_a_default() {
+        let store = || {
+            Box::new(StoreSource::new(HashMap::from([(
+                "S".to_string(),
+                "x".to_string(),
+            )]))) as Box<dyn SettingsSource>
+        };
+        let env = |name: &'static str, v: &'static str| {
+            Box::new(Fixed(name, v)) as Box<dyn SettingsSource>
+        };
+        let with = |layers: Vec<Box<dyn SettingsSource>>, status: StoreStatus| {
+            Settings::new(layers).with_store_status(status)
+        };
+        let down = || StoreStatus::Unavailable("not read".into());
+        // the environment wins whatever became of the store
+        for status in [StoreStatus::Verified, down()] {
+            assert_eq!(
+                with(vec![env("E", "v"), store()], status).origin("E"),
+                Origin::Env
+            );
+        }
+        // a store row is Store, or Snapshot when the snapshot stood in
+        assert_eq!(
+            with(vec![env("E", "v"), store()], StoreStatus::Verified).origin("S"),
+            Origin::Store
+        );
+        assert_eq!(
+            with(vec![env("E", "v"), store()], StoreStatus::Snapshot).origin("S"),
+            Origin::Snapshot
+        );
+        // an empty or quote-only environment value is no value
+        assert_eq!(
+            with(vec![env("E", "''"), store()], StoreStatus::Verified).origin("E"),
+            Origin::DefaultStoreOk
+        );
+        assert_eq!(
+            with(vec![env("E", " ")], down()).origin("E"),
+            Origin::DefaultStoreUnavailable
+        );
+        // no value: the default is trustworthy only when the store was read
+        assert_eq!(
+            with(vec![], StoreStatus::Verified).origin("N"),
+            Origin::DefaultStoreOk
+        );
+        assert_eq!(
+            with(vec![], StoreStatus::Snapshot).origin("N"),
+            Origin::DefaultStoreOk
+        );
+        assert_eq!(
+            with(vec![], down()).origin("N"),
+            Origin::DefaultStoreUnavailable
+        );
+        assert!(
+            Origin::Env.is_known()
+                && Origin::DefaultStoreOk.is_known()
+                && !Origin::DefaultStoreUnavailable.is_known()
+        );
+        // layers built without any knowledge of a store
+        assert_eq!(
+            Settings::from_map(HashMap::new()).origin("N"),
+            Origin::DefaultStoreUnavailable
         );
     }
 

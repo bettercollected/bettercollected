@@ -183,7 +183,7 @@ def rust_binary(arg: str | None) -> Path:
 class Pair:
     """A Python backend and a Rust edge in front of it, for one environment."""
 
-    def __init__(self, env_extra: dict, python_env: dict, rust_routes: list, base_env: dict, rust_bin: Path, logdir: Path, label: str):
+    def __init__(self, env_extra: dict, python_env: dict, rust_routes: list, base_env: dict, rust_bin: Path, logdir: Path, label: str, rust_env: dict | None = None):
         self.py_port, self.rs_port = free_port(), free_port()
         env = {**base_env, **env_extra}
         # a null in the corpus removes the variable (a stack that keeps it in the store only)
@@ -200,12 +200,18 @@ class Pair:
         self.rust = None
         self.py_url = f"http://127.0.0.1:{self.py_port}"
         self.rs_url = f"http://127.0.0.1:{self.rs_port}"
-        self._rust_args = (env, rust_routes, rust_bin, logdir, label)
+        self._rust_args = (env, rust_routes, rust_bin, logdir, label, rust_env or {})
 
     def start(self) -> None:
         wait_ready(self.python, self.py_url, "/api/v1/__ready__", 120)
-        env, routes, rust_bin, logdir, label = self._rust_args
+        env, routes, rust_bin, logdir, label, rust_env = self._rust_args
         renv = dict(env)
+        # what only the edge sees (a null removes the variable)
+        for name, value in rust_env.items():
+            if value is None:
+                renv.pop(name, None)
+            else:
+                renv[name] = value
         renv.update(
             BC_PYTHON_UPSTREAM=self.py_url,
             BC_RUST_ROUTES=",".join(routes),
@@ -325,6 +331,50 @@ def selfcheck_db_hook(dsn: str) -> str:
     return asyncio.run(go())
 
 
+def resolve_rust_env(rust_env: dict, specials: dict) -> dict:
+    """The placeholders of a file's ``rust_env``: ``@RANDOM_KEY`` and ``@EDGE_ROLE_URL``."""
+    out = {}
+    for name, value in rust_env.items():
+        if value == "@RANDOM_KEY":
+            value = base64.b64encode(secrets.token_bytes(48)).decode()
+        elif value == "@EDGE_ROLE_URL":
+            value = specials["edge_role_url"]
+        out[name] = value
+    return out
+
+
+async def create_edge_role(url: str) -> tuple:
+    """A login role that can read the application's tables and nothing of the settings
+    store, for the edge only. Returns (its database URL, a drop function's role name)."""
+    import asyncpg
+
+    parts = urlsplit(url)
+    role = f"bc_harness_edge_{secrets.token_hex(4)}"
+    password = secrets.token_hex(12)
+    conn = await asyncpg.connect(plain_dsn(url))
+    try:
+        await conn.execute(f'CREATE ROLE "{role}" LOGIN PASSWORD \'{password}\'')
+        await conn.execute(f'GRANT USAGE ON SCHEMA app TO "{role}"')
+        await conn.execute(f'GRANT SELECT ON ALL TABLES IN SCHEMA app TO "{role}"')
+        # no grant on schema settings: the views are out of reach
+    finally:
+        await conn.close()
+    host = parts.hostname or "127.0.0.1"
+    netloc = f"{role}:{password}@{host}" + (f":{parts.port}" if parts.port else "")
+    return urlunsplit(parts._replace(netloc=netloc)), role
+
+
+async def drop_edge_role(url: str, role: str) -> None:
+    import asyncpg
+
+    conn = await asyncpg.connect(plain_dsn(url))
+    try:
+        await conn.execute(f'DROP OWNED BY "{role}"')
+        await conn.execute(f'DROP ROLE IF EXISTS "{role}"')
+    finally:
+        await conn.close()
+
+
 def write_store(corpus_file, base_env: dict, logdir: Path, n: int) -> None:
     """Put the settings store in the state the file asks for (empty when it asks for none)."""
     spec = {"settings": corpus_file.store or {}, "tamper": corpus_file.tamper}
@@ -413,6 +463,7 @@ def main() -> int:
 
     asyncio.run(recreate_database(url))
     pairs: list = []
+    edge_role = None
     exit_code = 1
     try:
         run_seed(["migrate"], base_env)
@@ -429,10 +480,13 @@ def main() -> int:
             sys.exit(f"db hook self-check failed: {problem}")
         print("db hook self-check: ok")
 
+        specials: dict = {}
+        if any("@EDGE_ROLE_URL" in (f.rust_env or {}).values() for f in files):
+            specials["edge_role_url"], edge_role = asyncio.run(create_edge_role(plain_dsn(url)))
         by_env: dict = {}
         for cfile in files:
             key = json.dumps(
-                {"env": cfile.env, "python_env": cfile.python_env, "store": cfile.store,
+                {"env": cfile.env, "python_env": cfile.python_env, "rust_env": cfile.rust_env, "store": cfile.store,
                  "tamper": cfile.tamper, "expect_start": cfile.expect_start},
                 sort_keys=True,
             )
@@ -443,6 +497,7 @@ def main() -> int:
         for n, (env_key, group_files) in enumerate(by_env.items()):
             env_extra = json.loads(env_key)["env"]
             python_env = json.loads(env_key)["python_env"]
+            rust_env = resolve_rust_env(json.loads(env_key)["rust_env"], specials)
             routes = sorted({f.group for f in group_files})
             # the settings store follows the file: filled, tampered with, or emptied again after a file that filled it
             if group_files[0].store is not None or store_dirty:
@@ -463,7 +518,7 @@ def main() -> int:
                 modes.append(("passthrough", []))
             for mode, switched_on in modes:
                 label = f"{n}-{mode}"
-                pair = Pair(env_extra, python_env, switched_on, base_env, rust_bin, logdir, label)
+                pair = Pair(env_extra, python_env, switched_on, base_env, rust_bin, logdir, label, rust_env)
                 pairs.append(pair)
                 pair.start()
                 tally = Tally()
@@ -476,6 +531,8 @@ def main() -> int:
                     title += f" store={sorted(group_files[0].store)}"
                 if python_env:
                     title += f" python-only={json.dumps(python_env, sort_keys=True)[:60]}"
+                if group_files[0].rust_env:
+                    title += f" edge-only={sorted(group_files[0].rust_env)}"
                 tallies.append((title, tally))
 
         total_cases = sum(t.cases for _, t in tallies)
@@ -498,6 +555,11 @@ def main() -> int:
     finally:
         for pair in pairs:
             pair.stop()
+        if edge_role:
+            try:
+                asyncio.run(drop_edge_role(plain_dsn(url), edge_role))
+            except Exception as error:
+                print(f"could not drop the edge role {edge_role}: {type(error).__name__}", file=sys.stderr)
         if not args.keep_db:
             try:
                 asyncio.run(drop_database(url))

@@ -11,7 +11,7 @@ use axum::body::Body;
 use axum::http::{HeaderMap, Method, Request, StatusCode};
 use bc_api::app;
 use bc_api::state::AppState;
-use bc_config::{Config, Settings};
+use bc_config::{Config, Settings, StoreStatus};
 use http_body_util::BodyExt;
 use hyper_util::client::legacy::Client;
 use hyper_util::rt::TokioExecutor;
@@ -24,6 +24,10 @@ pub fn settings(upstream: &str, extra: &[(&str, &str)]) -> Settings {
         ("DATABASE_URL", "postgres://nobody@127.0.0.1:1/none"),
         ("AUTH_JWT_SECRET", SECRET),
         ("BC_PYTHON_UPSTREAM", upstream),
+        // explicit, so that a group that needs them is served; a test that wants
+        // them unset passes an empty value
+        ("SSO_ENABLED", "false"),
+        ("TOTP_ENABLED", "false"),
     ]
     .iter()
     .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
@@ -38,10 +42,19 @@ pub fn config(upstream: &str, extra: &[(&str, &str)]) -> Config {
     Config::from_settings(&settings(upstream, extra)).unwrap()
 }
 
+/// A configuration whose settings store, as far as this service is concerned,
+/// ended as `status` (what decides the origin of a switch that has no value).
+pub fn config_with_store(upstream: &str, extra: &[(&str, &str)], status: StoreStatus) -> Config {
+    Config::from_settings(&settings(upstream, extra).with_store_status(status)).unwrap()
+}
+
 /// A state whose pool never connects: every request of the DB-free tests is
 /// answered before a query.
 pub fn state(upstream: &str, extra: &[(&str, &str)]) -> AppState {
-    let cfg = config(upstream, extra);
+    state_of(config(upstream, extra))
+}
+
+pub fn state_of(cfg: Config) -> AppState {
     let pool = PgPoolOptions::new()
         .connect_lazy("postgres://nobody@127.0.0.1:1/none")
         .unwrap();
@@ -70,6 +83,19 @@ pub async fn serve(router: Router) -> SocketAddr {
 pub async fn edge(upstream: SocketAddr, extra: &[(&str, &str)]) -> SocketAddr {
     let upstream = format!("http://{upstream}");
     serve(app::router(state(&upstream, extra))).await
+}
+
+/// `edge` over a configuration whose store ended as `status`.
+pub async fn edge_with_store(
+    upstream: SocketAddr,
+    extra: &[(&str, &str)],
+    status: StoreStatus,
+) -> SocketAddr {
+    let upstream = format!("http://{upstream}");
+    serve(app::router(state_of(config_with_store(
+        &upstream, extra, status,
+    ))))
+    .await
 }
 
 pub type TestClient = Client<hyper_util::client::legacy::connect::HttpConnector, Body>;
