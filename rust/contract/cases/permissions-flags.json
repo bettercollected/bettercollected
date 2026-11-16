@@ -1,0 +1,53 @@
+{
+ "group": "permissions",
+ "description": "Every feature switch on (reported by name in the answer).",
+ "env": {
+  "FIELD_RULES_ENABLED": "true",
+  "CHOICE_LOGIC_ENABLED": "true",
+  "SAVE_DRAFTS_ENABLED": "true",
+  "CAPTCHA_ENABLED": "true",
+  "CSV_IMPORT_ENABLED": "true",
+  "NEW_QUESTION_TYPES_ENABLED": "true",
+  "ADDRESS_QUESTION_ENABLED": "true",
+  "ADDRESS_LOOKUP_ENABLED": "true",
+  "SIGNATURE_QUESTION_ENABLED": "true",
+  "OPTION_SOURCES_ENABLED": "true",
+  "REUSABLE_SECTIONS_ENABLED": "true",
+  "LAYOUT_CONTAINERS_ENABLED": "true",
+  "DAYBREAK_PRESET_ENABLED": "true",
+  "FORM_REVISIONS_UI_ENABLED": "true",
+  "AUDIT_LOG_UI_ENABLED": "true",
+  "RESPONSE_REVISIONS_ENABLED": "true",
+  "SUBMISSIONS_API_ENABLED": "true",
+  "FORM_EMBED_ENABLED": "true",
+  "FORM_ACCESS_ENABLED": "true",
+  "FORM_PROMOTION_ENABLED": "true",
+  "API_KEY_ROLES_ENABLED": "true",
+  "REPORTING_ENABLED": "true",
+  "APP_THEME_PIGMENT_ENABLED": "true"
+ },
+ "cases": [
+  {
+   "name": "flags:{who}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "owner",
+     "viewer",
+     "stranger"
+    ]
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "flags:no-token",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "served_by": "rust"
+  }
+ ]
+}

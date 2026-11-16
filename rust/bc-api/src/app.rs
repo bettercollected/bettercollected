@@ -4,10 +4,12 @@
 use std::sync::Arc;
 
 use axum::Router;
+use axum::extract::{Request, State};
+use axum::http::Method;
 use axum::http::StatusCode;
 use axum::http::{HeaderName, HeaderValue};
 use axum::response::Response;
-use axum::routing::{MethodFilter, on};
+use axum::routing::any;
 use bc_http::error::json_response;
 use serde_json::json;
 
@@ -29,7 +31,13 @@ pub fn router(state: AppState) -> Router {
         "/health",
         // the edge's own liveness; it does not ask the upstream. Other methods
         // of the path are the upstream's.
-        on(MethodFilter::GET, health).fallback(groups::forward),
+        any(|state: State<Shared>, request: Request| async move {
+            if request.method() == Method::GET {
+                health().await
+            } else {
+                groups::forward(state, request).await
+            }
+        }),
     );
     for group in groups::ALL {
         if state

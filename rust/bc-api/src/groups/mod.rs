@@ -22,10 +22,10 @@ use std::sync::Arc;
 
 use axum::Router;
 use axum::extract::{Request, State};
-use axum::http::{HeaderName, HeaderValue, header};
+use axum::http::{HeaderName, HeaderValue, Method, header};
 use axum::middleware::{self, Next};
 use axum::response::Response;
-use axum::routing::{MethodFilter, MethodRouter, on};
+use axum::routing::{MethodRouter, any};
 use bc_http::{cors, privacy};
 
 use crate::proxy::FromUpstream;
@@ -55,20 +55,28 @@ pub fn names() -> Vec<&'static str> {
     ALL.iter().map(|g| g.name).collect()
 }
 
-/// A route the Rust side serves for `filter`'s methods; every other method of
+/// A route the Rust side serves for the `methods` given; every other method of
 /// the path is forwarded to Python.
-pub fn served<H, T>(filter: MethodFilter, handler: H, state: &Shared) -> MethodRouter<Shared>
+///
+/// Built on axum's `any`, not on its per-method routing: that one answers a
+/// `HEAD` with the `GET` handler (Python does not) and adds an `Allow` header to
+/// whatever its fallback returns (Python does not), and either would make the
+/// switch visible to a client.
+pub fn served<H, T>(methods: &'static [Method], handler: H, state: &Shared) -> MethodRouter<Shared>
 where
     H: axum::handler::Handler<T, Shared>,
     T: 'static,
 {
-    on(filter, handler)
-        .layer(middleware::from_fn_with_state(state.clone(), rust_response))
-        .fallback(forward)
-        // axum answers a HEAD with the GET handler unless told otherwise;
-        // Python does not, so a HEAD is always Python's (do not pass HEAD in
-        // `filter`)
-        .head(forward)
+    any(handler).layer(middleware::from_fn_with_state(
+        state.clone(),
+        move |State(state): State<Shared>, request: Request, next: Next| async move {
+            if methods.contains(request.method()) {
+                rust_response(state, request, next).await
+            } else {
+                state.proxy.forward(request).await
+            }
+        },
+    ))
 }
 
 /// Forwards the request to the Python backend (the router's fallback too).
@@ -78,7 +86,7 @@ pub async fn forward(State(state): State<Shared>, request: Request) -> Response 
 
 /// The headers of a response the Rust side produced. A response that came
 /// from Python already has its own (CORS, no-store) and is left alone.
-async fn rust_response(State(state): State<Shared>, request: Request, next: Next) -> Response {
+async fn rust_response(state: Shared, request: Request, next: Next) -> Response {
     let origin = request
         .headers()
         .get(header::ORIGIN)

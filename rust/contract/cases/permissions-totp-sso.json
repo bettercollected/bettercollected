@@ -1,0 +1,38 @@
+{
+ "group": "permissions",
+ "description": "Both policies on.",
+ "env": {
+  "TOTP_ENABLED": "true",
+  "SSO_ENABLED": "true"
+ },
+ "cases": [
+  {
+   "name": "both:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "both_owner",
+     "both_admin",
+     "both_owner_mfa",
+     "both_admin_apikey",
+     "both_admin_sso",
+     "dis_both_owner",
+     "dis_both_owner_mfa",
+     "totp_owner",
+     "sso_owner"
+    ],
+    "w": [
+     "totp",
+     "sso",
+     "both",
+     "dis_both",
+     "main"
+    ]
+   }
+  }
+ ]
+}

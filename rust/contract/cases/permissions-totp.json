@@ -1,0 +1,45 @@
+{
+ "group": "permissions",
+ "description": "Authenticator-app policy on: workspaces that require it hold nothing for a session without a second factor.",
+ "env": {
+  "TOTP_ENABLED": "true"
+ },
+ "cases": [
+  {
+   "name": "totp:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "totp_owner",
+     "totp_admin",
+     "both_owner",
+     "both_admin",
+     "dis_both_owner",
+     "totp_owner_mfa",
+     "totp_admin_mfa",
+     "totp_owner_apikey",
+     "totp_admin_apikey",
+     "totp_owner_sso",
+     "totp_admin_sso",
+     "both_owner_mfa",
+     "both_admin_apikey",
+     "dis_both_owner_mfa",
+     "owner",
+     "stranger"
+    ],
+    "w": [
+     "totp",
+     "sso",
+     "both",
+     "dis_both",
+     "main"
+    ]
+   },
+   "served_by": "rust"
+  }
+ ]
+}

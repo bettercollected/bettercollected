@@ -283,6 +283,8 @@ async fn a_forwarded_answer_gets_no_second_set_of_cors_headers() {
     );
     assert_eq!(a.headers.get_all(header::VARY).iter().count(), 1);
     assert!(a.headers.get("access-control-allow-credentials").is_none());
+    // nothing of axum's own routing shows through (it would add `Allow`)
+    assert!(a.headers.get(header::ALLOW).is_none());
 }
 
 #[tokio::test]

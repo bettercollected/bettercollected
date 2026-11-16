@@ -41,7 +41,9 @@ impl Flags {
             out.push("Daybreak");
         }
         if self.app_theme_pigment {
+            // both follow the app theme switch (`app_theme.ENABLED`)
             out.push("Pigment");
+            out.push("Pigment Leaflet");
         }
         out
     }
@@ -108,6 +110,9 @@ mod tests {
             app_theme_pigment: true,
             ..Flags::default()
         };
-        assert_eq!(flags.offered_presets(), vec!["Daybreak", "Pigment"]);
+        assert_eq!(
+            flags.offered_presets(),
+            vec!["Daybreak", "Pigment", "Pigment Leaflet"]
+        );
     }
 }

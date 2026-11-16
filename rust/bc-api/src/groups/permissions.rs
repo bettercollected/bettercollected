@@ -5,9 +5,8 @@
 
 use axum::Router;
 use axum::extract::{Request, State};
-use axum::http::{StatusCode, header};
+use axum::http::{Method, StatusCode, header};
 use axum::response::Response;
-use axum::routing::MethodFilter;
 use bc_auth::{ACCESS_COOKIE, REFRESH_COOKIE, User, parse_cookies, user_from_access_token};
 use bc_authz::{Decision, Perms, Policies, Step, begin, finish};
 use bc_config::Config;
@@ -24,7 +23,7 @@ const PATH_SUFFIX: &str = "/permissions";
 pub fn mount(router: Router<Shared>, state: &Shared) -> Router<Shared> {
     router.route(
         "/api/v1/workspaces/{workspace_id}/permissions",
-        served(MethodFilter::GET, permissions, state),
+        served(&[Method::GET], permissions, state),
     )
 }
 
