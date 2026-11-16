@@ -1,0 +1,9 @@
+[workspace]
+members = ["bc-api"]
+resolver = "2"
+
+[profile.release]
+lto = "thin"
+codegen-units = 4
+opt-level = 3
+strip = true
