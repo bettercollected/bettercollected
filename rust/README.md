@@ -62,5 +62,7 @@ uv run --project backend python rust/contract/seed.py seed fixture.json
 python3 rust/contract/contract_test.py fixture.json http://127.0.0.1:18000 http://127.0.0.1:18080
 ```
 
+`contract/bench.sh` runs one ApacheBench load (50 connections, 30 s) against either server and prints throughput, latency percentiles, CPU seconds and memory.
+
 The fixture holds throw-away ids and tokens; do not commit it. `contract/golden_tink.py` regenerates the Tink test vector
 (`bc-api/tests/golden/tink_vector.json`, a keyset generated for tests only).

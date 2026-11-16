@@ -99,7 +99,7 @@ def build(fx, subset):
         "owner_mfa_bad", "owner_email_verified_one", "owner_email_verified_two", "owner_iat_future",
         "owner_iat_past", "owner_iat_text", "owner_aud", "owner_iss", "owner_sid_number", "owner_sid_zero",
         "owner_scope_other_ws", "owner_scope_none", "owner_scope_bad_type", "owner_scope_unknown",
-        "owner_auth_sso", "owner_float_exp", "owner_string_exp", "owner_nbf_past", "owner_extra_header",
+        "owner_no_exp", "owner_auth_sso", "owner_float_exp", "owner_string_exp", "owner_nbf_past", "owner_extra_header",
     ):
         add(f"token:{name}@main", "GET", perm(main), auth(name))
         add(f"token:{name}@other", "GET", perm(ws["other"]), auth(name))

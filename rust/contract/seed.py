@@ -74,7 +74,7 @@ def _claims(user_id, email, *, typ="access", exp_in=4 * 3600, sid="x", extra=Non
     return claims
 
 
-def make_tokens(people, main_workspace_id):
+def make_tokens(people, workspaces):
     members = _signing_members()
     primary = members[0]
     old = members[1] if len(members) > 1 else None
@@ -82,7 +82,7 @@ def make_tokens(people, main_workspace_id):
     def mint(user_id, email, secret=None, **kw):
         return jwt.encode(_claims(user_id, email, **kw), secret or primary, algorithm="HS256")
 
-    ws_id = main_workspace_id
+    ws_id = workspaces["main"]
     tokens = {}
     for name, p in people.items():
         tokens[name] = mint(p["id"], p["email"])
@@ -147,7 +147,21 @@ def make_tokens(people, main_workspace_id):
     tokens["owner_extra_header"] = jwt.encode(
         _claims(owner["id"], owner["email"]), primary, algorithm="HS256", headers={"kid": "x", "typ": "JWT"}
     )
+    tokens["owner_no_exp"] = jwt.encode(
+        {k: v for k, v in _claims(owner["id"], owner["email"]).items() if k != "exp"},
+        primary, algorithm="HS256",
+    )
     tokens["garbage"] = "not.a.jwt"
+    # second factor / API key / SSO variants for the people of the policy workspaces
+    for name, p in people.items():
+        head = name.split("_")[0]
+        if name.endswith(("_owner", "_admin")) and head in ("totp", "sso", "both", "dis"):
+            for suffix, extra in (
+                ("_mfa", {"mfa": True}),
+                ("_apikey", {"auth_method": "api_key"}),
+                ("_sso", {"auth_method": "sso", "sso_workspace_id": workspaces.get(head, "")}),
+            ):
+                tokens[name + suffix] = mint(p["id"], p["email"], extra=extra)
     return tokens
 
 
@@ -243,7 +257,7 @@ async def seed(out: str) -> None:
         # allowed origins for the CORS cases
         await container.allowed_origins_repo().add("https://app.example.test")
 
-        tokens = make_tokens(people, str(ws.id))
+        tokens = make_tokens(people, {"main": str(ws.id)})
 
         fixture = {
             "workspaces": {
@@ -295,17 +309,7 @@ async def extend(path: str) -> None:
         await repo.set_fields(ws, {"require_totp": True, "sso_required": True, "disabled": True})
         fixture["people"]["dis_both_owner"] = {"id": owner_id, "email": owner.sub}
         fixture["workspaces"]["dis_both"] = str(ws.id)
-    fixture["tokens"] = make_tokens(fixture["people"], fixture["workspaces"]["main"])
-    for name in list(fixture["people"]):
-        if name.endswith(("_owner", "_admin")) and name.split("_")[0] in ("totp", "sso", "both", "dis"):
-            p = fixture["people"][name]
-            fixture["tokens"][name + "_mfa"] = jwt.encode(
-                _claims(p["id"], p["email"], extra={"mfa": True}), _signing_members()[0], algorithm="HS256")
-            fixture["tokens"][name + "_apikey"] = jwt.encode(
-                _claims(p["id"], p["email"], extra={"auth_method": "api_key"}), _signing_members()[0], algorithm="HS256")
-            fixture["tokens"][name + "_sso"] = jwt.encode(
-                _claims(p["id"], p["email"], extra={"auth_method": "sso", "sso_workspace_id": fixture["workspaces"].get(name.split("_")[0], "")}),
-                _signing_members()[0], algorithm="HS256")
+    fixture["tokens"] = make_tokens(fixture["people"], fixture["workspaces"])
     Path(path).write_text(json.dumps(fixture, indent=1))
     print("extended")
 
@@ -313,7 +317,7 @@ async def extend(path: str) -> None:
 def retoken(path: str) -> None:
     """New tokens for the people already seeded (the old ones expire after four hours)."""
     fixture = json.loads(Path(path).read_text())
-    fixture["tokens"] = make_tokens(fixture["people"], fixture["workspaces"]["main"])
+    fixture["tokens"] = make_tokens(fixture["people"], fixture["workspaces"])
     Path(path).write_text(json.dumps(fixture, indent=1))
     print("tokens renewed")
 
