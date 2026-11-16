@@ -4,8 +4,9 @@
 
 use std::fmt::Debug;
 use std::sync::{Arc, Mutex, PoisonError};
+use std::time::{SystemTime, UNIX_EPOCH};
 
-use chrono::{DateTime, Duration, DurationRound, TimeDelta, Utc};
+use chrono::{DateTime, Duration, Utc};
 
 /// The current time, aware UTC, at the microsecond precision of a Python
 /// `datetime`.
@@ -21,9 +22,12 @@ pub struct SystemClock;
 
 impl Clock for SystemClock {
     fn now(&self) -> DateTime<Utc> {
-        let now = Utc::now();
-        now.duration_trunc(TimeDelta::microseconds(1))
-            .unwrap_or(now)
+        // std's clock, so chrono needs no platform time-zone crates
+        let since = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default();
+        let micros = i64::try_from(since.as_micros()).unwrap_or(i64::MAX);
+        DateTime::from_timestamp_micros(micros).unwrap_or_default()
     }
 }
 
@@ -38,6 +42,11 @@ impl FixedClock {
 
     pub fn set(&self, at: DateTime<Utc>) {
         *self.0.lock().unwrap_or_else(PoisonError::into_inner) = at;
+    }
+
+    /// The instant (the same as `Clock::now`, without importing the trait).
+    pub fn now_utc(&self) -> DateTime<Utc> {
+        *self.0.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
     pub fn advance(&self, by: Duration) {
