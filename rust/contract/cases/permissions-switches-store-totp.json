@@ -1,0 +1,38 @@
+{
+ "group": "permissions",
+ "description": "SSO_ENABLED explicit off in the environment, TOTP_ENABLED on for Python only: one unset switch is enough to keep the group on Python.",
+ "env": {
+  "SSO_ENABLED": "false"
+ },
+ "python_env": {
+  "TOTP_ENABLED": "true"
+ },
+ "cases": [
+  {
+   "name": "store-totp:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "totp_owner",
+     "totp_admin",
+     "both_owner",
+     "sso_owner",
+     "owner",
+     "viewer",
+     "stranger"
+    ],
+    "w": [
+     "main",
+     "totp",
+     "sso",
+     "both"
+    ]
+   },
+   "served_by": "python"
+  }
+ ]
+}

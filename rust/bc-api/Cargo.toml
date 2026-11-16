@@ -1,0 +1,36 @@
+[package]
+name = "bc-api"
+description = "The edge of the bettercollected backend: serves the route groups switched on and forwards every other request to the Python backend"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+bc-auth = { workspace = true }
+bc-authz = { workspace = true }
+bc-config = { workspace = true }
+bc-db = { workspace = true }
+bc-http = { workspace = true }
+axum = { workspace = true }
+hyper = { workspace = true }
+hyper-util = { workspace = true }
+percent-encoding = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sqlx = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[dev-dependencies]
+http-body-util = { workspace = true }
+sha2 = { workspace = true }
+bc-crypto = { workspace = true }
+jsonwebtoken = { workspace = true }
+tower = { workspace = true }
+futures-util = { workspace = true }
+
+[lints]
+workspace = true

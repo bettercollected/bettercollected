@@ -1,0 +1,27 @@
+{
+ "group": "permissions",
+ "description": "Address lookup needs both switches; presets follow their own.",
+ "env": {
+  "ADDRESS_QUESTION_ENABLED": "true",
+  "DAYBREAK_PRESET_ENABLED": "true",
+  "SSO_ENABLED": "false",
+  "TOTP_ENABLED": "false"
+ },
+ "cases": [
+  {
+   "name": "partial:{who}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "owner",
+     "viewer"
+    ]
+   },
+   "served_by": "rust"
+  }
+ ]
+}

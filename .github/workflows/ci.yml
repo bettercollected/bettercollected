@@ -64,6 +64,8 @@ jobs:
             webapp: ${{ steps.plan.outputs.webapp }}
             smoke: ${{ steps.plan.outputs.smoke }}
             executor: ${{ steps.plan.outputs.executor }}
+            rust: ${{ steps.plan.outputs.rust }}
+            rust_contract: ${{ steps.plan.outputs.rust_contract }}
             backend_matrix: ${{ steps.plan.outputs.backend_matrix }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -502,6 +504,166 @@ jobs:
                   SHARD: ${{ matrix.shard }}
               run: yarn test:run --shard="$SHARD/2"
 
+    # The Rust workspace (rust/): formatting, lints, unit and request-level tests,
+    # and the licence/advisory/source check. Runs when rust/ changes, and on every
+    # push to develop (the plan's "full"). The toolchain is the one pinned in
+    # rust/rust-toolchain.toml. cargo-deny is installed from its release page at a
+    # pinned version, checked against a pinned SHA-256.
+    rust-checks:
+        name: Rust checks (fmt, clippy, test, deny)
+        needs: plan
+        if: needs.plan.outputs.rust == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        defaults:
+            run:
+                working-directory: rust
+        env:
+            CARGO_TERM_COLOR: never
+            CARGO_INCREMENTAL: "0"
+            CARGO_DENY_VERSION: "0.20.2"
+            CARGO_DENY_SHA256: "9f12ed4c49936e09b48bf862b595cde2fe64fcbd9d74dfacac6131ca824c8d5f"
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  persist-credentials: false
+
+            - name: Install the pinned toolchain
+              run: |
+                  channel=$(sed -n 's/^channel *= *"\(.*\)"/\1/p' rust-toolchain.toml)
+                  rustup toolchain install "$channel" --profile minimal --component rustfmt --component clippy
+                  cargo --version
+
+            # Registry downloads and build output, keyed on the lockfile and the
+            # toolchain. A pull request restores the newest one from develop; only
+            # develop saves, so pull requests do not push the cache out.
+            - name: Restore the cargo cache
+              id: cargo-cache
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: |
+                      ~/.cargo/registry/index
+                      ~/.cargo/registry/cache
+                      ~/.cargo/git/db
+                      rust/target
+                  key: rust-checks-${{ runner.os }}-${{ hashFiles('rust/Cargo.lock', 'rust/rust-toolchain.toml') }}
+                  restore-keys: rust-checks-${{ runner.os }}-
+
+            - name: Check the formatting
+              run: cargo fmt --all --check
+
+            - name: Lint
+              run: cargo clippy --locked --workspace --all-targets -- -D warnings
+
+            - name: Test
+              run: cargo test --locked --workspace
+
+            - name: Install cargo-deny
+              working-directory: ${{ runner.temp }}
+              run: |
+                  base="https://github.com/EmbarkStudios/cargo-deny/releases/download/${CARGO_DENY_VERSION}"
+                  asset="cargo-deny-${CARGO_DENY_VERSION}-x86_64-unknown-linux-musl.tar.gz"
+                  curl --proto '=https' --tlsv1.2 -fsSL -o "$asset" "$base/$asset"
+                  echo "${CARGO_DENY_SHA256}  $asset" | sha256sum -c -
+                  mkdir cargo-deny && tar -xzf "$asset" -C cargo-deny --strip-components=1
+                  echo "${{ runner.temp }}/cargo-deny" >> "$GITHUB_PATH"
+
+            - name: Licences, advisories, sources
+              run: cargo deny check
+
+            - name: Save the cargo cache
+              if: github.ref == 'refs/heads/develop' && steps.cargo-cache.outputs.cache-hit != 'true'
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: |
+                      ~/.cargo/registry/index
+                      ~/.cargo/registry/cache
+                      ~/.cargo/git/db
+                      rust/target
+                  key: rust-checks-${{ runner.os }}-${{ hashFiles('rust/Cargo.lock', 'rust/rust-toolchain.toml') }}
+
+    # The contract harness (rust/contract/): the Python backend and the Rust edge
+    # started on one fresh Postgres database that the backend's own code seeded; the
+    # same requests go to both and status, headers and the JSON after parse must
+    # agree, with the edge in front of Python (each route group switched on) and
+    # with it switched off (the pass-through). Runs when rust/ or the Python code it
+    # seeds through (backend/, common/) changes, and on every push to develop.
+    rust-contract:
+        name: Rust contract harness (Python and Rust)
+        needs: plan
+        if: needs.plan.outputs.rust_contract == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        defaults:
+            run:
+                working-directory: backend
+        env:
+            VIRTUAL_ENV: ""
+            MONGO_URI: ""
+            # the server and the credentials; the harness creates its own database
+            DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
+            AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
+            # replaced by a generated ring of two for the run (the harness)
+            AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
+            SCHEDULAR_ENABLED: "False"
+            API_ENABLE_FORM_CREATION: "True"
+            UNSPLASH_ACCESS_KEY: ""
+            CARGO_TERM_COLOR: never
+            CARGO_INCREMENTAL: "0"
+            MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  persist-credentials: false
+
+            - name: Start the test database
+              working-directory: .
+              run: .github/scripts/test-dbs.sh start postgres
+
+            - name: Set up uv
+              uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+              with:
+                  version: "0.12.23"
+                  python-version: 3.11.12
+                  enable-cache: true
+
+            - name: Install dependencies
+              run: uv sync --frozen
+
+            - name: Install the pinned toolchain
+              working-directory: rust
+              run: |
+                  channel=$(sed -n 's/^channel *= *"\(.*\)"/\1/p' rust-toolchain.toml)
+                  rustup toolchain install "$channel" --profile minimal
+                  cargo --version
+
+            - name: Restore the cargo cache
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: |
+                      ~/.cargo/registry/index
+                      ~/.cargo/registry/cache
+                      ~/.cargo/git/db
+                      rust/target
+                  key: rust-contract-${{ runner.os }}-${{ hashFiles('rust/Cargo.lock', 'rust/rust-toolchain.toml') }}
+                  restore-keys: |
+                      rust-contract-${{ runner.os }}-
+                      rust-checks-${{ runner.os }}-
+
+            - name: Build the Rust edge
+              working-directory: rust
+              run: cargo build --locked -p bc-api
+
+            - name: Wait for the test database
+              working-directory: .
+              run: .github/scripts/test-dbs.sh wait
+
+            - name: Test the harness itself
+              run: uv run --frozen pytest ../rust/contract -q -p no:cacheprovider
+
+            - name: Run the contract harness
+              run: uv run --frozen python ../rust/contract/run.py --passthrough --database-name bc_contract_test
+
     # One check that sums up the run: it fails when any job failed or was
     # cancelled, and passes when every job passed or was not needed (the plan
     # skips suites a pull request cannot affect). A skipped job never hides a
@@ -520,6 +682,8 @@ jobs:
             - webapp-build
             - webapp-tests
             - smoke-selftest
+            - rust-checks
+            - rust-contract
         runs-on: ubuntu-latest
         steps:
             - name: Every job passed or was not needed

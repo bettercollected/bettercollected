@@ -1,0 +1,58 @@
+{
+ "group": "permissions",
+ "description": "Single sign-on on: a workspace that requires it is decided by the Python backend, the rest by Rust.",
+ "env": {
+  "SSO_ENABLED": "true",
+  "TOTP_ENABLED": "false"
+ },
+ "cases": [
+  {
+   "name": "sso:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "sso_owner",
+     "sso_admin",
+     "both_owner",
+     "both_admin",
+     "dis_both_owner",
+     "sso_owner_sso",
+     "sso_admin_sso",
+     "sso_owner_mfa",
+     "owner",
+     "viewer",
+     "stranger"
+    ],
+    "w": [
+     "totp",
+     "sso",
+     "both",
+     "dis_both",
+     "main"
+    ]
+   }
+  },
+  {
+   "name": "sso:respondent-elsewhere",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner_scope_other_ws}"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "sso:respondent-own",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner_respondent_scope}"
+   },
+   "served_by": "rust"
+  }
+ ]
+}

@@ -1,0 +1,41 @@
+# cargo-deny: licences, advisories, bans and sources of the Rust workspace.
+# CI runs `cargo deny check` (see .github/workflows/ci.yml, job rust-checks).
+
+[advisories]
+version = 2
+yanked = "deny"
+# An advisory against a crate that no workspace crate depends on directly (the
+# dependency of a dependency) is reported but does not stop the build; one
+# against a direct dependency does. A vulnerability always stops it.
+unmaintained = "workspace"
+ignore = []
+
+[licenses]
+version = 2
+# only permissive licences
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+    "BSL-1.0",
+    "CDLA-Permissive-2.0",
+    "Unlicense",
+]
+confidence-threshold = 0.9
+
+[bans]
+# two versions of one crate are common in a large tree: listed, not refused
+multiple-versions = "warn"
+wildcards = "deny"
+# the workspace's own path dependencies carry no version requirement
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

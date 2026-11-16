@@ -1,0 +1,36 @@
+{
+ "group": "permissions",
+ "description": "Both policy switches explicit in the environment in other spellings the Python parser accepts (off, yes): served by Rust, equal to Python.",
+ "env": {
+  "SSO_ENABLED": "off",
+  "TOTP_ENABLED": "yes"
+ },
+ "cases": [
+  {
+   "name": "spelled:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "totp_owner",
+     "totp_admin",
+     "both_owner",
+     "sso_owner",
+     "owner",
+     "viewer",
+     "stranger"
+    ],
+    "w": [
+     "main",
+     "totp",
+     "sso",
+     "both"
+    ]
+   },
+   "served_by": "rust"
+  }
+ ]
+}

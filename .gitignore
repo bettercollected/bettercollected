@@ -27,3 +27,6 @@ webapp/.yarn
 
 # Python bytecode (e.g. from running .github/scripts tests)
 __pycache__/
+
+# Rust workspace build output
+rust/target/

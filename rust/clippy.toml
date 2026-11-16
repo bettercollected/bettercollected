@@ -1,0 +1,16 @@
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-print-in-tests = true
+doc-valid-idents = [
+    "FastAPI",
+    "PyJWT",
+    "ObjectId",
+    "SQLAlchemy",
+    "PostgreSQL",
+    "OpenAPI",
+    "JSONB",
+    "AES-GCM",
+    "CSPRNG",
+    "SameSite",
+    "..",
+]

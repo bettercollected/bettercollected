@@ -1,0 +1,989 @@
+{
+ "group": "permissions",
+ "description": "GET /workspaces/{id}/permissions with every feature switch off and both policy switches set to off in the environment: roles, tokens, ids, cookies, methods, paths and CORS.",
+ "env": {
+  "SSO_ENABLED": "false",
+  "TOTP_ENABLED": "false"
+ },
+ "cases": [
+  {
+   "name": "person:{who}@{ws}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{ws}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": "@people",
+    "ws": "@workspaces"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "id:{id}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{id}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}"
+   },
+   "matrix": {
+    "id": [
+     "6a0000000000000000000000",
+     "nope",
+     "gggggggggggggggggggggggg",
+     "%20",
+     ".",
+     "%C3%A9",
+     "%FF",
+     "%00",
+     "6a00000000000000000000",
+     "6a000000000000000000000000"
+    ]
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "id:{id}:no-token",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{id}/permissions",
+   "matrix": {
+    "id": [
+     "6a0000000000000000000000",
+     "nope",
+     "%20",
+     ".",
+     "%C3%A9",
+     "%FF"
+    ]
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "id:encoded-slash",
+   "method": "GET",
+   "path": "/api/v1/workspaces/a%2Fb/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "id:encoded-slash:no-token",
+   "method": "GET",
+   "path": "/api/v1/workspaces/a%2Fb/permissions",
+   "served_by": "python"
+  },
+  {
+   "name": "id:upper-case-main",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main_upper}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "token:{t}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{t}}"
+   },
+   "matrix": {
+    "t": [
+     "owner_old_key",
+     "owner_unknown_key",
+     "owner_expired",
+     "owner_refresh_typ",
+     "owner_no_typ",
+     "owner_no_sid",
+     "owner_hs512",
+     "owner_respondent_scope",
+     "owner_extra_claims",
+     "owner_bad_id_claim",
+     "owner_numeric_id",
+     "owner_nbf_future",
+     "garbage",
+     "owner_bad_plan",
+     "owner_pro_plan",
+     "owner_roles_string",
+     "owner_roles_null",
+     "owner_mfa_string",
+     "owner_mfa_bad",
+     "owner_email_verified_one",
+     "owner_email_verified_two",
+     "owner_iat_future",
+     "owner_iat_past",
+     "owner_iat_text",
+     "owner_aud",
+     "owner_iss",
+     "owner_sid_number",
+     "owner_sid_zero",
+     "owner_scope_other_ws",
+     "owner_scope_none",
+     "owner_scope_bad_type",
+     "owner_scope_unknown",
+     "owner_no_exp",
+     "owner_auth_sso",
+     "owner_float_exp",
+     "owner_string_exp",
+     "owner_nbf_past",
+     "owner_extra_header",
+     "owner_float_exp_expired",
+     "owner_string_exp_expired",
+     "owner_string_exp_junk",
+     "owner_string_exp_padded",
+     "owner_string_exp_underscore",
+     "owner_string_exp_float_text",
+     "owner_exp_null",
+     "owner_exp_true",
+     "owner_nbf_float_future",
+     "owner_nbf_string_future",
+     "owner_nbf_float_past",
+     "owner_nbf_string_junk",
+     "owner_nbf_null",
+     "owner_iat_float",
+     "owner_iat_negative"
+    ],
+    "w": [
+     "main",
+     "other"
+    ]
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cookie:empty-value",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization="
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cookie:quoted",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization=\"{token.owner}\""
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cookie:lowercase-name",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "authorization={token.owner}"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cookie:duplicate-later-wins",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization=bad; Authorization={token.owner}"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cookie:duplicate-bad-later",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}; Authorization=bad"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cookie:other-cookies",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "a=1; Authorization={token.owner}; b=2"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cookie:no-spaces",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "a=1;Authorization={token.owner};b=2"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cookie:header-not-cookie",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Authorization": "{token.owner}"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cookie:bearer-header",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Authorization": "Bearer {token.owner}"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cookie:refresh-only",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "RefreshToken={token.owner}"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cookie:refresh-token-in-access",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner_refresh_typ}"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cookie:empty-refresh",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner_expired}; RefreshToken="
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "refresh:expired+garbage-refresh",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner_expired}; RefreshToken=garbage"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "refresh:no-access+garbage-refresh",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "RefreshToken=garbage"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "scope:respondent@own",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner_respondent_scope}"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "scope:respondent@invalid-id",
+   "method": "GET",
+   "path": "/api/v1/workspaces/nope/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner_respondent_scope}"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "method:{m}",
+   "method": "{m}",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}"
+   },
+   "matrix": {
+    "m": [
+     "HEAD",
+     "POST",
+     "PUT",
+     "PATCH",
+     "DELETE",
+     "OPTIONS"
+    ]
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "method:{m}:no-token",
+   "method": "{m}",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "matrix": {
+    "m": [
+     "HEAD",
+     "POST",
+     "PUT",
+     "PATCH",
+     "DELETE",
+     "OPTIONS"
+    ]
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "path:query-string",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions?x=1&y=2",
+   "headers": {
+    "Cookie": "Authorization={token.owner}"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "path:trailing-slash",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions/",
+   "headers": {
+    "Cookie": "Authorization={token.owner}"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "path:trailing-slash:no-token",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions/",
+   "served_by": "python"
+  },
+  {
+   "name": "path:trailing-slash+query",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions/?a=b",
+   "headers": {
+    "Cookie": "Authorization={token.owner}"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "path:trailing-slash+query:no-token",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions/?a=b",
+   "served_by": "python"
+  },
+  {
+   "name": "path:unknown-under-workspace",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissionz",
+   "headers": {
+    "Cookie": "Authorization={token.owner}"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "path:unknown-under-workspace:no-token",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissionz",
+   "served_by": "python"
+  },
+  {
+   "name": "path:deeper",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions/extra",
+   "headers": {
+    "Cookie": "Authorization={token.owner}"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "path:deeper:no-token",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions/extra",
+   "served_by": "python"
+  },
+  {
+   "name": "path:double-slash",
+   "method": "GET",
+   "path": "/api/v1/workspaces//{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "path:double-slash:no-token",
+   "method": "GET",
+   "path": "/api/v1/workspaces//{ws.main}/permissions",
+   "served_by": "python"
+  },
+  {
+   "name": "path:upper-case-segment",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/Permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "path:upper-case-segment:no-token",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/Permissions",
+   "served_by": "python"
+  },
+  {
+   "name": "path:no-prefix",
+   "method": "GET",
+   "path": "/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "path:no-prefix:no-token",
+   "method": "GET",
+   "path": "/workspaces/{ws.main}/permissions",
+   "served_by": "python"
+  },
+  {
+   "name": "path:root",
+   "method": "GET",
+   "path": "/",
+   "headers": {
+    "Cookie": "Authorization={token.owner}"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:allowed:200",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}",
+    "Origin": "https://app.example.test"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cors:allowed:401",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "https://app.example.test"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cors:allowed:404",
+   "method": "GET",
+   "path": "/nope",
+   "headers": {
+    "Origin": "https://app.example.test"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:allowed:405",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}",
+    "Origin": "https://app.example.test"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:allowed:422",
+   "method": "GET",
+   "path": "/api/v1/workspaces/nope/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}",
+    "Origin": "https://app.example.test"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cors:allowed:preflight",
+   "method": "OPTIONS",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "https://app.example.test",
+    "Access-Control-Request-Method": "GET"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:allowed:preflight-headers",
+   "method": "OPTIONS",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "https://app.example.test",
+    "Access-Control-Request-Method": "GET",
+    "Access-Control-Request-Headers": "x-a, content-type"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:allowed:preflight-delete",
+   "method": "OPTIONS",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "https://app.example.test",
+    "Access-Control-Request-Method": "DELETE"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:allowed:preflight-weird-method",
+   "method": "OPTIONS",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "https://app.example.test",
+    "Access-Control-Request-Method": "FOO"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:allowed:preflight-unknown-path",
+   "method": "OPTIONS",
+   "path": "/nope",
+   "headers": {
+    "Origin": "https://app.example.test",
+    "Access-Control-Request-Method": "GET"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:denied:200",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}",
+    "Origin": "https://evil.example.test"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cors:denied:401",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "https://evil.example.test"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cors:denied:404",
+   "method": "GET",
+   "path": "/nope",
+   "headers": {
+    "Origin": "https://evil.example.test"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:denied:405",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}",
+    "Origin": "https://evil.example.test"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:denied:422",
+   "method": "GET",
+   "path": "/api/v1/workspaces/nope/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}",
+    "Origin": "https://evil.example.test"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cors:denied:preflight",
+   "method": "OPTIONS",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "https://evil.example.test",
+    "Access-Control-Request-Method": "GET"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:denied:preflight-headers",
+   "method": "OPTIONS",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "https://evil.example.test",
+    "Access-Control-Request-Method": "GET",
+    "Access-Control-Request-Headers": "x-a, content-type"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:denied:preflight-delete",
+   "method": "OPTIONS",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "https://evil.example.test",
+    "Access-Control-Request-Method": "DELETE"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:denied:preflight-weird-method",
+   "method": "OPTIONS",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "https://evil.example.test",
+    "Access-Control-Request-Method": "FOO"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:denied:preflight-unknown-path",
+   "method": "OPTIONS",
+   "path": "/nope",
+   "headers": {
+    "Origin": "https://evil.example.test",
+    "Access-Control-Request-Method": "GET"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:null:200",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}",
+    "Origin": "null"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cors:null:401",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "null"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cors:null:404",
+   "method": "GET",
+   "path": "/nope",
+   "headers": {
+    "Origin": "null"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:null:405",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}",
+    "Origin": "null"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:null:422",
+   "method": "GET",
+   "path": "/api/v1/workspaces/nope/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}",
+    "Origin": "null"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cors:null:preflight",
+   "method": "OPTIONS",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "null",
+    "Access-Control-Request-Method": "GET"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:null:preflight-headers",
+   "method": "OPTIONS",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "null",
+    "Access-Control-Request-Method": "GET",
+    "Access-Control-Request-Headers": "x-a, content-type"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:null:preflight-delete",
+   "method": "OPTIONS",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "null",
+    "Access-Control-Request-Method": "DELETE"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:null:preflight-weird-method",
+   "method": "OPTIONS",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "null",
+    "Access-Control-Request-Method": "FOO"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:null:preflight-unknown-path",
+   "method": "OPTIONS",
+   "path": "/nope",
+   "headers": {
+    "Origin": "null",
+    "Access-Control-Request-Method": "GET"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:trailing-slash:200",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}",
+    "Origin": "https://app.example.test/"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cors:trailing-slash:401",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "https://app.example.test/"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cors:trailing-slash:404",
+   "method": "GET",
+   "path": "/nope",
+   "headers": {
+    "Origin": "https://app.example.test/"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:trailing-slash:405",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}",
+    "Origin": "https://app.example.test/"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:trailing-slash:422",
+   "method": "GET",
+   "path": "/api/v1/workspaces/nope/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}",
+    "Origin": "https://app.example.test/"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cors:trailing-slash:preflight",
+   "method": "OPTIONS",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "https://app.example.test/",
+    "Access-Control-Request-Method": "GET"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:trailing-slash:preflight-headers",
+   "method": "OPTIONS",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "https://app.example.test/",
+    "Access-Control-Request-Method": "GET",
+    "Access-Control-Request-Headers": "x-a, content-type"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:trailing-slash:preflight-delete",
+   "method": "OPTIONS",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "https://app.example.test/",
+    "Access-Control-Request-Method": "DELETE"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:trailing-slash:preflight-weird-method",
+   "method": "OPTIONS",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "https://app.example.test/",
+    "Access-Control-Request-Method": "FOO"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:trailing-slash:preflight-unknown-path",
+   "method": "OPTIONS",
+   "path": "/nope",
+   "headers": {
+    "Origin": "https://app.example.test/",
+    "Access-Control-Request-Method": "GET"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:case:200",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}",
+    "Origin": "https://APP.example.test"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cors:case:401",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "https://APP.example.test"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cors:case:404",
+   "method": "GET",
+   "path": "/nope",
+   "headers": {
+    "Origin": "https://APP.example.test"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:case:405",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}",
+    "Origin": "https://APP.example.test"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:case:422",
+   "method": "GET",
+   "path": "/api/v1/workspaces/nope/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.owner}",
+    "Origin": "https://APP.example.test"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "cors:case:preflight",
+   "method": "OPTIONS",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "https://APP.example.test",
+    "Access-Control-Request-Method": "GET"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:case:preflight-headers",
+   "method": "OPTIONS",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "https://APP.example.test",
+    "Access-Control-Request-Method": "GET",
+    "Access-Control-Request-Headers": "x-a, content-type"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:case:preflight-delete",
+   "method": "OPTIONS",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "https://APP.example.test",
+    "Access-Control-Request-Method": "DELETE"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:case:preflight-weird-method",
+   "method": "OPTIONS",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "https://APP.example.test",
+    "Access-Control-Request-Method": "FOO"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:case:preflight-unknown-path",
+   "method": "OPTIONS",
+   "path": "/nope",
+   "headers": {
+    "Origin": "https://APP.example.test",
+    "Access-Control-Request-Method": "GET"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:options-no-request-method",
+   "method": "OPTIONS",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Origin": "https://app.example.test"
+   },
+   "served_by": "python"
+  },
+  {
+   "name": "cors:two-cookies+origin",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.viewer}",
+    "Origin": "https://app.example.test"
+   },
+   "served_by": "rust"
+  },
+  {
+   "name": "path:encoded-receipt:{v}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/submissions/{v}",
+   "headers": {
+    "Cookie": "Authorization={token.owner}"
+   },
+   "matrix": {
+    "v": [
+     "by%2Duuid/abc",
+     "by%2duuid/abc",
+     "by-uuid%2Fabc",
+     "by%252Duuid/abc"
+    ]
+   },
+   "served_by": "python"
+  }
+ ]
+}
