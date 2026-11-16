@@ -2,4 +2,6 @@
 //! (`bc_db::value`); these are re-exported so the store modules keep their
 //! imports.
 
-pub use bc_db::value::{id_text, truthy};
+// `truthy` reads a flag as pydantic reads a `bool` (`"true"` and `1` are on); a
+// policy that must not fail open reads `flag` and treats `Unreadable` as "ask Python".
+pub use bc_db::value::{Flag, flag, id_text, lax_bool, truthy};

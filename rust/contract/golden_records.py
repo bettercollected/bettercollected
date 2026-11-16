@@ -266,6 +266,37 @@ OPAQUE = {
 }
 
 
+# Every spelling of a flag and of an integer the Python models are asked to read:
+# Python says which it takes (and what it writes back) and which it refuses.
+BOOL_SPELLINGS = [True, False, 0, 1, 2, -1, 0.0, 1.0, -0.0, 0.5, 2.0, "true", "True", "TRUE", " true", "true ", "t", "T", "yes", "Y", "on", "ON", "off", "no", "n", "f", "false", "0", "1", "2", "", "maybe", "1.0", "0.0", None, [], {}]
+INT_SPELLINGS = [7, "7", " 7 ", "7.0", 7.0, 7.5, "abc", "", True, False, "+7", "-7", "1e2", None, [], 0, -1]
+
+
+def _spelling_cases():
+    n = 100
+    out = []
+    for value in BOOL_SPELLINGS:
+        n += 1
+        out.append(("workspaces", f"flag disabled = {json.dumps(value)}", {"_id": {"$oid": ids(n)}, "workspace_name": "x", "disabled": value, "created_at": TS1, "updated_at": TS1}))
+        n += 1
+        out.append(("workspaces", f"flag require_totp = {json.dumps(value)}", {"_id": {"$oid": ids(n)}, "workspace_name": "x", "require_totp": value, "created_at": TS1, "updated_at": TS1}))
+        n += 1
+        out.append(("workspaces", f"flag sso_required = {json.dumps(value)}", {"_id": {"$oid": ids(n)}, "workspace_name": "x", "sso_required": value, "created_at": TS1, "updated_at": TS1}))
+        n += 1
+        out.append(("workspaces", f"bool default = {json.dumps(value)}", {"_id": {"$oid": ids(n)}, "workspace_name": "x", "default": value, "created_at": TS1, "updated_at": TS1}))
+        n += 1
+        out.append(("workspace_users", f"bool disabled = {json.dumps(value)}", {"_id": {"$oid": ids(n)}, "workspace_id": {"$oid": WS}, "user_id": {"$oid": USER}, "disabled": value, "created_at": TS1, "updated_at": TS1}))
+    for value in INT_SPELLINGS:
+        n += 1
+        out.append(("workspaces", f"int audit_retention_months = {json.dumps(value)}", {"_id": {"$oid": ids(n)}, "workspace_name": "x", "audit_retention_months": value, "created_at": TS1, "updated_at": TS1}))
+        n += 1
+        out.append(("workspace_audit_events", f"int revision = {json.dumps(value)}", {"_id": {"$oid": ids(n)}, "workspace_id": {"$oid": WS}, "user_id": "u", "event": "e", "revision": value, "created_at": TS1, "updated_at": TS1}))
+    return out
+
+
+READ_CASES += _spelling_cases()
+
+
 def classes():
     from backend.app.schemas.workspace import WorkspaceDocument
     from backend.app.schemas.workspace_audit_event import WorkspaceAuditEventDocument

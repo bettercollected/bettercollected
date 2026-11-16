@@ -289,6 +289,62 @@ async def seed(out: str) -> None:
     print("seeded", len(people), "people")
 
 
+# How a policy flag may be spelled in a stored document. Python reads these the
+# way pydantic reads a bool (rust/bc-db/src/value.rs lists what it accepts); a
+# row written by an older version, an import or by hand can carry any of them.
+# `maybe` and 2 are refused by pydantic: the document cannot be read at all.
+LAX_SPELLINGS = {
+    "s_true": "true",
+    "s_Yes": "Yes",
+    "s_on": "on",
+    "s_1": "1",
+    "i_1": 1,
+    "f_1": 1.0,
+    "s_false": "false",
+    "i_0": 0,
+    "null": None,
+    "s_maybe": "maybe",
+    "i_2": 2,
+}
+LAX_FLAGS = ("disabled", "sso_required", "require_totp", "member_disabled")
+
+
+async def _write_lax(table: str, row_id: str, changes: dict) -> None:
+    """Writes `changes` into a stored document directly, as a row from before the
+    models were strict, an import or a hand edit would hold it (and the checksum,
+    so the row stays consistent)."""
+    from sqlalchemy import text
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    from common.db.canonical import checksum
+
+    engine = create_async_engine(os.environ["DATABASE_URL"])
+    async with engine.begin() as conn:
+        doc = (await conn.execute(text(f"SELECT doc FROM app.{table} WHERE id = :i"), {"i": row_id})).scalar_one()
+        doc.update(changes)
+        await conn.execute(
+            text(f"UPDATE app.{table} SET doc = CAST(:d AS jsonb), _bc_checksum = :c WHERE id = :i"),
+            {"d": json.dumps(doc), "c": checksum(doc), "i": row_id},
+        )
+    await engine.dispose()
+
+
+async def _member_row_id(workspace_id: str, user_id: str) -> str:
+    from sqlalchemy import text
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    engine = create_async_engine(os.environ["DATABASE_URL"])
+    async with engine.connect() as conn:
+        row = (
+            await conn.execute(
+                text("SELECT id FROM app.workspace_users WHERE workspace_id = :w AND user_id = :u"),
+                {"w": workspace_id, "u": user_id},
+            )
+        ).scalar_one()
+    await engine.dispose()
+    return row
+
+
 async def extend(path: str) -> None:
     """Workspaces that require an authenticator app / single sign-on, for the runs
     that switch TOTP_ENABLED / SSO_ENABLED on."""
@@ -302,6 +358,7 @@ async def extend(path: str) -> None:
     from common.models.user import User
 
     fixture = json.loads(Path(path).read_text())
+    lax_ws: list = []
     app = get_application(is_test_mode=True)
     async with lifespan(app):
         repo, members = container.workspace_repo(), container.workspace_user_repo()
@@ -325,6 +382,23 @@ async def extend(path: str) -> None:
         await repo.set_fields(ws, {"require_totp": True, "sso_required": True, "disabled": True})
         fixture["people"]["dis_both_owner"] = {"id": owner_id, "email": owner.sub}
         fixture["workspaces"]["dis_both"] = str(ws.id)
+        # one workspace and its owner per flag and spelling, the stored value written directly
+        for flag in LAX_FLAGS:
+            for key, value in LAX_SPELLINGS.items():
+                label = f"lax_{flag}_{key}"
+                owner_id = str(RecordId())
+                owner = User(id=owner_id, sub=f"{label}@example.test")
+                await workspace_service.create_workspace(owner)
+                ws = await repo.get_default_workspace_by_owner_id(owner.id)
+                fixture["people"][label] = {"id": owner_id, "email": owner.sub}
+                fixture["workspaces"][label] = str(ws.id)
+                lax_ws.append((flag, str(ws.id), owner_id, value))
+    for flag, ws_id, owner_id, value in lax_ws:
+        if flag == "member_disabled":
+            member = await _member_row_id(ws_id, owner_id)
+            await _write_lax("workspace_users", member, {"disabled": value})
+        else:
+            await _write_lax("workspaces", ws_id, {flag: value})
     fixture["tokens"] = make_tokens(fixture["people"], fixture["workspaces"])
     Path(path).write_text(json.dumps(fixture, indent=1))
     print("extended")

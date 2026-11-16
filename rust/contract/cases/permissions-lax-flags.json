@@ -1,0 +1,79 @@
+{
+ "group": "permissions",
+ "description": "Policy flags and membership flags stored in the spellings pydantic accepts (\"true\", \"Yes\", 1, 1.0, ...): Python enforces them, so the edge must. Rows whose flag pydantic refuses (\"maybe\", 2, null for a plain bool) cannot be read by Python either: the edge hands those requests to Python, so its answer stands.",
+ "env": {
+  "TOTP_ENABLED": "true",
+  "SSO_ENABLED": "true"
+ },
+ "cases": [
+  {
+   "name": "lax:{x}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{x}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{x}}"
+   },
+   "matrix": {
+    "x": [
+     "lax_disabled_s_true",
+     "lax_disabled_s_Yes",
+     "lax_disabled_s_on",
+     "lax_disabled_s_1",
+     "lax_disabled_i_1",
+     "lax_disabled_f_1",
+     "lax_disabled_s_false",
+     "lax_disabled_i_0",
+     "lax_disabled_null",
+     "lax_sso_required_s_true",
+     "lax_sso_required_s_Yes",
+     "lax_sso_required_s_on",
+     "lax_sso_required_s_1",
+     "lax_sso_required_i_1",
+     "lax_sso_required_f_1",
+     "lax_sso_required_s_false",
+     "lax_sso_required_i_0",
+     "lax_sso_required_null",
+     "lax_require_totp_s_true",
+     "lax_require_totp_s_Yes",
+     "lax_require_totp_s_on",
+     "lax_require_totp_s_1",
+     "lax_require_totp_i_1",
+     "lax_require_totp_f_1",
+     "lax_require_totp_s_false",
+     "lax_require_totp_i_0",
+     "lax_require_totp_null",
+     "lax_member_disabled_s_true",
+     "lax_member_disabled_s_Yes",
+     "lax_member_disabled_s_on",
+     "lax_member_disabled_s_1",
+     "lax_member_disabled_i_1",
+     "lax_member_disabled_f_1",
+     "lax_member_disabled_s_false",
+     "lax_member_disabled_i_0"
+    ]
+   }
+  },
+  {
+   "name": "lax-unreadable:{x}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{x}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{x}}"
+   },
+   "served_by": "python",
+   "matrix": {
+    "x": [
+     "lax_disabled_s_maybe",
+     "lax_disabled_i_2",
+     "lax_sso_required_s_maybe",
+     "lax_sso_required_i_2",
+     "lax_require_totp_s_maybe",
+     "lax_require_totp_i_2",
+     "lax_member_disabled_null",
+     "lax_member_disabled_s_maybe",
+     "lax_member_disabled_i_2"
+    ]
+   }
+  }
+ ]
+}

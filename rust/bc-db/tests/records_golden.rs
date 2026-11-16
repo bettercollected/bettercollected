@@ -99,22 +99,19 @@ fn rust_reads_every_row_python_wrote() {
     }
 }
 
-fn check_stored<T: Record>(entry: &Value, now: DateTime<Utc>) {
+fn check_stored<T: Record>(entry: &Value, now: DateTime<Utc>) -> Option<String> {
     let name = format!("{} / {}", entry["table"], entry["name"]);
     let result = decode::<T>(entry["stored"].clone(), now);
     if let Some(why) = entry.get("refused") {
-        assert!(
-            result.is_err(),
-            "{name}: Python refuses this ({why}); Rust read it"
-        );
+        result
+            .is_ok()
+            .then(|| format!("{name}: Python refuses this ({why}); Rust read it"))
     } else {
-        let read =
-            result.unwrap_or_else(|e| panic!("{name}: Python reads this, Rust did not: {e}"));
-        assert_eq!(
-            encode(&read).unwrap(),
-            entry["rewritten"],
-            "{name}: what is written back"
-        );
+        match result {
+            Err(e) => Some(format!("{name}: Python reads this, Rust did not: {e}")),
+            Ok(read) => (encode(&read).unwrap() != entry["rewritten"])
+                .then(|| format!("{name}: written back differently")),
+        }
     }
 }
 
@@ -125,9 +122,19 @@ fn rust_is_tolerant_exactly_where_python_is() {
     let cases = v["read_cases"].as_array().unwrap();
     assert!(cases.iter().any(|c| c.get("refused").is_some()));
     assert!(cases.iter().any(|c| c.get("rewritten").is_some()));
+    let mut wrong = Vec::new();
     for entry in cases {
-        with_record!(entry["table"].as_str().unwrap(), check_stored(entry, now));
+        wrong.extend(with_record!(
+            entry["table"].as_str().unwrap(),
+            check_stored(entry, now)
+        ));
     }
+    assert!(
+        wrong.is_empty(),
+        "{} differences from Python:\n{}",
+        wrong.len(),
+        wrong.join("\n")
+    );
 }
 
 fn keys_of<T: Record>(sample: &Value, now: DateTime<Utc>) -> Vec<String> {

@@ -130,6 +130,15 @@ Every table of schema `app` is `id`, `doc` (JSONB, the whole document), `created
   60 s (`DB_STATEMENT_TIMEOUT_MS`, `DB_LOCK_TIMEOUT_MS`, `DB_IDLE_IN_TRANSACTION_MS`, `DB_POOL_SIZE`,
   `DB_MAX_OVERFLOW`, `DB_POOL_TIMEOUT_S` as in Python).
 
+- A new id needs the system random generator: if it cannot be read, minting fails (`DbError::NoRandomness`), never a
+  zero-randomness id (two processes in that state would mint the same ids).
+- A stored flag is read as pydantic reads a `bool`: JSON `true` / `false`, `0` and `1` (also `0.0`, `1.0`), and a string
+  that is in any letter case `0 1 f t n y no on off yes true false` (no spaces); anything else (`2`, `0.5`, `""`,
+  `"maybe"`, `" true"`, an array or object) is refused, and `null` is "not set" for an optional flag and refused for a
+  plain one. The permissions group reads `workspaces` and `workspace_users` through the typed records, so a flag
+  written `"true"` or `1` is enforced as Python enforces it, and a document Python cannot read at all is handed to
+  Python (its answer stands). The contract cases `permissions-lax-flags.json` write such rows directly.
+
 A part of a document that is a large model of its own (a form's fields, a theme, an answer set) is carried as
 `serde_json::Value` already in document form: the data layer neither validates nor normalises it.
 
