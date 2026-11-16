@@ -18,8 +18,9 @@
 //! - the input is UTF-8, a leading byte order mark is skipped.
 //!
 //! What it refuses where Python reads: a UTF-16 or UTF-32 body. Nesting is
-//! limited as Python 3.13's C scanner limits it ([`MAX_DEPTH`], 9998 levels,
-//! where Python raises `RecursionError`, which is not a `ValueError`). A caller
+//! limited as the deployed backend limits it ([`MAX_DEPTH`]: the interpreter's
+//! recursion limit, less the frames the request is already deep in; Python then
+//! raises `RecursionError`, which is not a `ValueError`). A caller
 //! that gets `None` hashes the raw bytes, as `request_hash` does when Python's
 //! parser raises `ValueError`. Reading, writing and dropping a value never
 //! recurse, so a body nested to the limit cannot overflow the stack, and no
@@ -64,11 +65,23 @@ pub const CANONICAL: Options = Options {
     compact: true,
 };
 
-/// The deepest nesting [`parse`] reads: what `json.loads` of Python 3.13
-/// reads (measured: 9998 nested arrays or objects parse, 9999 raise
-/// `RecursionError`; the limit is the C recursion limit of the interpreter, so
-/// it is a property of the Python version the backend runs on).
-pub const MAX_DEPTH: usize = 9998;
+/// The deepest nesting [`parse`] reads, which is what the running backend
+/// accepts on its public API routes (`POST /public/v1/forms`, `.../ops`,
+/// `.../publish`, with an `Idempotency-Key`, where `request_hash` reads the body).
+///
+/// It follows the deployed interpreter, Python 3.11.12 (`backend/Dockerfile`).
+/// There `json.loads` is bounded by the recursion limit (1000), shared with
+/// every Python frame already on the stack: a bare call at module level reads
+/// 994 levels, the real server on these routes reads 982 (a deeper body is a
+/// 500, `RecursionError`), the same for arrays, objects and an innermost empty
+/// container. Measured with `rust/contract/json_depth_probe.py`, which starts
+/// `python -m backend` under 3.11.12 and searches the boundary over HTTP. It
+/// must be measured again whenever the backend image's Python version or the
+/// middleware stack (an APM agent adds frames) changes. Python 3.13 reads 9998.
+pub const MAX_DEPTH: usize = 982;
+/// The same measurement for the builder's save route
+/// (`POST /api/v1/workspaces/{id}/forms/{id}/ops`), one frame shallower.
+pub const MAX_DEPTH_EDITOR_OPS: usize = 983;
 /// Python 3.11+ `int()` refuses a decimal string longer than this.
 const MAX_INT_DIGITS: usize = 4300;
 
@@ -316,6 +329,12 @@ pub fn float_repr(f: f64) -> String {
 /// `json.loads(body)` of a request body; `None` where Python raises
 /// `ValueError` and where this reader declines (see the module notes).
 pub fn parse(body: &[u8]) -> Option<Json> {
+    parse_limited(body, MAX_DEPTH)
+}
+
+/// [`parse`] with the nesting limit of a given route (for example
+/// [`MAX_DEPTH_EDITOR_OPS`]).
+pub fn parse_limited(body: &[u8], max_depth: usize) -> Option<Json> {
     // `json.detect_encoding`: UTF-16 and UTF-32 bodies are not read here
     match body {
         [0xff, 0xfe, ..] | [0xfe, 0xff, ..] | [0, ..] | [_, 0, ..] => return None,
@@ -327,6 +346,7 @@ pub fn parse(body: &[u8]) -> Option<Json> {
         src: text,
         text: text.as_bytes(),
         at: 0,
+        max_depth,
     };
     parser.skip_ws();
     let value = parser.value()?;
@@ -395,6 +415,7 @@ struct Parser<'a> {
     src: &'a str,
     text: &'a [u8],
     at: usize,
+    max_depth: usize,
 }
 
 impl Parser<'_> {
@@ -443,7 +464,7 @@ impl Parser<'_> {
             let mut done = match self.peek()? {
                 b'[' => {
                     self.at += 1;
-                    if stack.len() >= MAX_DEPTH {
+                    if stack.len() >= self.max_depth {
                         return None;
                     }
                     self.skip_ws();
@@ -457,7 +478,7 @@ impl Parser<'_> {
                 }
                 b'{' => {
                     self.at += 1;
-                    if stack.len() >= MAX_DEPTH {
+                    if stack.len() >= self.max_depth {
                         return None;
                     }
                     self.skip_ws();

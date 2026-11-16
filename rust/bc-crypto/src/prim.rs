@@ -3,9 +3,7 @@
 //! and writes it, and the sub-key derivation of `common/settings/key_ring.py`.
 
 use base64::Engine;
-use base64::alphabet;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
-use base64::engine::{GeneralPurpose, GeneralPurposeConfig};
 use bc_config::secrets::KeyRing;
 use hmac::{Hmac, Mac};
 use sha2::{Digest, Sha256};
@@ -109,43 +107,63 @@ pub fn unb64url(text: &str) -> Option<Vec<u8>> {
     py_urlsafe_b64decode(&padded)
 }
 
-/// `base64.urlsafe_b64decode(text)` for every input a Python-written value can
-/// be: bytes outside the base64 alphabet (a newline, a space) are skipped, as
-/// `CPython` skips them, and what remains must be canonical padded base64 (the
-/// URL-safe and the standard alphabet both read). `CPython` also tolerates
-/// padding in odd places (`YQ====`, a leading `=`) and its behaviour there has
-/// changed between releases; those are refused here. `None` where Python
-/// raises, and for those forms.
+/// `base64.urlsafe_b64decode(text)` as `CPython` 3.11 (the deployed
+/// interpreter) reads it: `a2b_base64` in its non-strict mode. Bytes outside the
+/// alphabet (a newline, a space) are skipped; both the URL-safe and the standard
+/// alphabet are read; a `=` that completes the last group ends the input, so
+/// whatever follows is ignored; a `=` anywhere else is skipped; the text must
+/// end on a whole group (data characters and completing padding). `None` where
+/// Python raises, and for any non-ASCII text. Newer releases changed how stray
+/// padding is read (3.13 does not stop at a completing pad), so this follows the
+/// 3.11 behaviour and is pinned by a differential vector of random inputs.
 pub fn py_urlsafe_b64decode(text: &str) -> Option<Vec<u8>> {
     if !text.is_ascii() {
         return None;
     }
-    let mut chars: Vec<u8> = Vec::with_capacity(text.len());
-    let mut pads = 0usize;
+    let mut out = Vec::with_capacity(text.len() / 4 * 3);
+    let mut left = 0u8;
+    let mut quad = 0u8;
+    let mut pads = 0u8;
     for &byte in text.as_bytes() {
-        match byte {
-            b'=' => {
+        if byte == b'=' {
+            if quad >= 2 {
                 pads += 1;
-                chars.push(b'=');
-            }
-            b'-' => chars.push(b'+'),
-            b'_' => chars.push(b'/'),
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'+' | b'/' => {
-                if pads > 0 {
-                    return None; // data after the padding
+                if quad + pads >= 4 {
+                    return Some(out);
                 }
-                chars.push(byte);
             }
-            _ => {}
+            continue;
+        }
+        let value = match byte {
+            b'A'..=b'Z' => byte - b'A',
+            b'a'..=b'z' => byte - b'a' + 26,
+            b'0'..=b'9' => byte - b'0' + 52,
+            b'-' | b'+' => 62,
+            b'_' | b'/' => 63,
+            _ => continue,
+        };
+        pads = 0;
+        match quad {
+            0 => {
+                quad = 1;
+                left = value;
+            }
+            1 => {
+                quad = 2;
+                out.push((left << 2) | (value >> 4));
+                left = value & 0x0f;
+            }
+            2 => {
+                quad = 3;
+                out.push((left << 4) | (value >> 2));
+                left = value & 0x03;
+            }
+            _ => {
+                quad = 0;
+                out.push((left << 6) | value);
+                left = 0;
+            }
         }
     }
-    if pads > 2 || !chars.len().is_multiple_of(4) {
-        return None;
-    }
-    // CPython does not check the unused trailing bits
-    let engine = GeneralPurpose::new(
-        &alphabet::STANDARD,
-        GeneralPurposeConfig::new().with_decode_allow_trailing_bits(true),
-    );
-    engine.decode(&chars).ok()
+    if quad == 0 { Some(out) } else { None }
 }
