@@ -1,0 +1,72 @@
+{
+ "group": "permissions",
+ "description": "A row changed in the database without signing it again (SSO off, signed on): both refuse that row, keep serving, and every other row of the store still applies.",
+ "store": {
+  "SSO_ENABLED": true,
+  "TOTP_ENABLED": true,
+  "CAPTCHA_ENABLED": true
+ },
+ "tamper": [
+  {
+   "op": "value",
+   "key": "SSO_ENABLED",
+   "value": false
+  }
+ ],
+ "cases": [
+  {
+   "name": "store-tampered-row:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "both_owner",
+     "both_admin",
+     "both_owner_mfa",
+     "both_admin_apikey",
+     "both_admin_sso",
+     "dis_both_owner",
+     "dis_both_owner_mfa",
+     "totp_owner",
+     "sso_owner",
+     "owner",
+     "viewer",
+     "stranger"
+    ],
+    "w": [
+     "totp",
+     "sso",
+     "both",
+     "dis_both",
+     "main"
+    ]
+   }
+  },
+  {
+   "name": "store-tampered-row-rust:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "owner",
+     "viewer",
+     "stranger",
+     "totp_owner",
+     "totp_admin",
+     "totp_owner_mfa"
+    ],
+    "w": [
+     "main",
+     "totp"
+    ]
+   },
+   "served_by": "rust"
+  }
+ ]
+}

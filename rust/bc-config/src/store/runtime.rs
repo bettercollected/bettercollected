@@ -508,7 +508,7 @@ impl StoreRuntime {
         let mut unset: Vec<&str> = self
             .registry
             .specs()
-            .filter(|s| (s.is_secret || s.tier == super::registry::Tier::T3) && s.store_backed)
+            .filter(|s| s.is_secret || s.tier == super::registry::Tier::T3)
             .filter(|s| !self.env_has(&s.key) && state.current.get(&s.key).is_none())
             .map(|s| s.key.as_str())
             .collect();

@@ -1,0 +1,31 @@
+{
+ "group": "permissions",
+ "description": "A stored switch is a JSON bool or one of true/1/yes/on, false/0/no/off (the portal's writer refuses anything else): stored as text 'Yes' or '1' it is on, as 'off' it is off, on both sides.",
+ "store": {
+  "CAPTCHA_ENABLED": "Yes",
+  "SAVE_DRAFTS_ENABLED": "1",
+  "FIELD_RULES_ENABLED": "off",
+  "ADDRESS_QUESTION_ENABLED": true
+ },
+ "cases": [
+  {
+   "name": "store-words:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "owner",
+     "viewer",
+     "stranger"
+    ],
+    "w": [
+     "main"
+    ]
+   },
+   "served_by": "rust"
+  }
+ ]
+}

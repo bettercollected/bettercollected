@@ -55,8 +55,8 @@ cargo run -p bc-api
 | Variable | Meaning | Default |
 |---|---|---|
 | `DATABASE_URL` | Postgres; a SQLAlchemy driver suffix (`+asyncpg`) is accepted | required |
-| `AUTH_JWT_SECRET` | Session signing secret, or a ring `<current>,<previous>` (each side 32 or more characters) | required; a published value is refused |
-| `AUTH_AES_HEX_KEY` | Fernet key ring; checked when set, not needed yet | unset |
+| `AUTH_JWT_SECRET` | Session signing secret, or a ring `<current>,<previous>` (each side 32 or more characters); from the settings store when not in the environment | required; a published value is refused |
+| `AUTH_AES_HEX_KEY` | Fernet key ring; checked when set, not needed yet; also from the store | unset |
 | `BC_PYTHON_UPSTREAM` | `http://host[:port]` of the Python backend (plain HTTP, no path) | required |
 | `BC_RUST_ROUTES` | Route groups served by Rust, comma separated | empty: everything goes to Python |
 | `BC_API_BIND` | Listen address | `127.0.0.1:8080` |
@@ -67,14 +67,34 @@ cargo run -p bc-api
 | `TRUSTED_PROXIES` / `API_TRUSTED_PROXIES`, `API_TRUST_CLOUDFLARE`, `API_CLOUDFLARE_IPS` | Which proxies in front are believed about the client address; same meaning as in the Python backend | trust nobody |
 | `SSO_ENABLED`, `TOTP_ENABLED`, and the feature switches the permissions answer reports (`CAPTCHA_ENABLED`, ...) | Same names and parsing as the Python settings | off |
 
-Settings are read from the environment only. The settings store of the Python services is not read yet, so a
-stack whose secrets live only in that store cannot run this service.
+### The settings store
 
-`SSO_ENABLED` and `TOTP_ENABLED` are also store-backed settings in the Python backend. A route group whose answers
-depend on them (`permissions`) is therefore served by Rust only when **both** are set explicitly in the
-environment (to any value the Python parser accepts, `false` included); otherwise every request for the group is
-forwarded to Python, and the edge says so once at start. Until the settings-store reader exists, this keeps a
-switch that is on only in the store from being treated as off.
+Settings are read the way the Python backend reads them (`common/settings`, for the reader `backend`): a non-empty
+environment value (trimmed, one pair of quotes removed), then the verified value in the admin settings store,
+then the default. A stack that keeps its signing secret or its switches only in the store (after `settings-prune`)
+therefore gets the same answers from this service and from Python.
+
+* The store is read at start through `settings.v_backend` and `settings.v_backend_manifest`, over the same
+  `DATABASE_URL` (role `bc_app` in production, which holds SELECT on those two views). `SETTINGS_STORE`
+  (`off`, `auto` (default), `required`), `SETTINGS_MASTER_KEY`, `SETTINGS_MASTER_KEY_PREVIOUS`,
+  `SETTINGS_SNAPSHOT_DIR` and `SETTINGS_SNAPSHOT_MAX_AGE_DAYS` mean what they mean in Python and are read from the
+  environment only.
+* Every row is verified (its own HMAC signature, the signed manifest, the registry's section, secrecy, reload class
+  and readers, no version below one already seen) and a secret is opened with a key derived from the master key.
+  A row that fails is refused and the setting keeps its default (a secret never has one). With
+  `SETTINGS_STORE=required` the service refuses to start when a critical setting (a secret, tier T3 or T4) has
+  no usable value, when the manifest is not trusted, when the store is older than the signed snapshot this
+  process recorded, or when the store was never written and `AUTH_JWT_SECRET` / `AUTH_AES_HEX_KEY` are not in
+  the environment. If the database cannot be read at start, the signed snapshot in `SETTINGS_SNAPSHOT_DIR`
+  (`settings-backend.json`, the format Python writes) stands in.
+* Which keys come from the store is the Python registry's answer (`data/settings-registry.json`, written by
+  `contract/settings_registry.py` and checked against Python in CI). The switches held in the environment until
+  released (`FORM_ACCESS_ENABLED`, `API_KEY_ROLES_ENABLED`, `FORM_PROMOTION_ENABLED`, `REPORTING_ENABLED`) are not
+  store keys, and `API_TRUSTED_PROXIES` is not read from the store because Python's loader does not read it either.
+* Class R settings are read once, at start. Class H settings are not secret and can be read live
+  (`Config::store`, `StoreRuntime::live_value`); a poller applies a new manifest revision every ten seconds.
+* The service does not report its state back to the store (`settings.report_state`) yet, so the admin portal does
+  not list it among the running services.
 
 ## The per-group switch
 
@@ -127,13 +147,21 @@ The run exits non-zero on any difference. `--group NAME` runs one group, `--repo
 JSON.
 
 Cases are data, one JSON file per route group in `contract/cases/` (the format is in `contract/corpus.py`).
-A file can set environment variables for both servers (`env`: the feature switches, `TOTP_ENABLED`, ...) and for the
-Python backend only (`python_env`: what Python knows and the edge cannot see, such as a setting held in the settings
-store), and says which side must have answered each case (`served_by`), so a group that quietly falls back to Python
-cannot pass.
+A file can set environment variables for both servers (`env`: the feature switches, `TOTP_ENABLED`, ...; a `null`
+removes a variable, for a stack that keeps it in the store only) and for the Python backend only (`python_env`, a
+difference to look at on purpose), and says which side must have answered each case (`served_by`), so a group that
+quietly falls back to Python cannot pass.
+
+A file can also fill the settings store (`store`: written through the admin portal's own writer, so rows are signed
+and secrets sealed; `"@ENV:NAME"` is the value of a variable of the run), alter it afterwards without signing again
+(`tamper`: `value`, `blob`, `manifest_sig`), and expect both servers to refuse to start
+(`expect_start: "refused"`, which also checks that neither logs a secret of the run). The harness migrates the admin
+chain with the backend's, and starts every pair with its own snapshot directory.
 
 To add a route group: write its module under `bc-api/src/groups/`, add it to `groups::ALL`, add
 `contract/cases/<group>.json`, and run the harness.
 
-`contract/golden_tink.py` regenerates the ciphertext test vector of `bc-crypto`; `contract/bench.sh` runs a load
+`contract/golden_tink.py` regenerates the ciphertext test vector of `bc-crypto`, `contract/golden_settings.py` the
+settings-store vector (rows signed and secrets sealed by the Python code) and `contract/settings_registry.py` the
+registry file of the store reader (`--check` fails on drift); `contract/bench.sh` runs a load
 comparison with ApacheBench.

@@ -1,0 +1,18 @@
+{
+ "group": "permissions",
+ "description": "SETTINGS_STORE=required, the signing secret only in the store, manifest altered: both refuse to start.",
+ "store": {
+  "AUTH_JWT_SECRET": "@ENV:AUTH_JWT_SECRET"
+ },
+ "tamper": [
+  {
+   "op": "manifest_sig"
+  }
+ ],
+ "env": {
+  "AUTH_JWT_SECRET": null,
+  "SETTINGS_STORE": "required"
+ },
+ "expect_start": "refused",
+ "cases": []
+}

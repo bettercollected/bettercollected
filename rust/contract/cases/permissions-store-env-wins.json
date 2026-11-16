@@ -1,0 +1,68 @@
+{
+ "group": "permissions",
+ "description": "On in the store and off in the environment: the environment wins on both sides (in two spellings that are not empty).",
+ "store": {
+  "SSO_ENABLED": true,
+  "TOTP_ENABLED": true
+ },
+ "env": {
+  "SSO_ENABLED": "false",
+  "TOTP_ENABLED": "off"
+ },
+ "cases": [
+  {
+   "name": "store-env-off:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "both_owner",
+     "both_admin",
+     "both_owner_mfa",
+     "both_admin_apikey",
+     "both_admin_sso",
+     "dis_both_owner",
+     "dis_both_owner_mfa",
+     "totp_owner",
+     "sso_owner",
+     "owner",
+     "viewer",
+     "stranger"
+    ],
+    "w": [
+     "totp",
+     "sso",
+     "both",
+     "dis_both",
+     "main"
+    ]
+   }
+  },
+  {
+   "name": "store-env-off-rust:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "owner",
+     "viewer",
+     "stranger",
+     "totp_owner",
+     "totp_admin",
+     "totp_owner_mfa"
+    ],
+    "w": [
+     "main",
+     "totp"
+    ]
+   },
+   "served_by": "rust"
+  }
+ ]
+}

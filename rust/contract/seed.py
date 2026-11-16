@@ -49,6 +49,12 @@ def migrate() -> None:
         await apply_schema(os.environ["DATABASE_URL"])
 
     asyncio.run(jobs())
+
+    # the admin portal's chain: the settings store lives in its schema `settings`
+    from backend.admin.db import MIGRATIONS as ADMIN_MIGRATIONS
+    from common.db.schema_guard import upgrade_schema
+
+    asyncio.run(upgrade_schema(os.environ["DATABASE_URL"], ADMIN_MIGRATIONS))
     print("migrated")
 
 
@@ -338,8 +344,64 @@ def retoken(path: str) -> None:
     print("tokens renewed")
 
 
+async def store(path: str) -> None:
+    """Put the settings store in the state a corpus file asks for: empty, then the
+    ``settings`` written the way the admin portal's writer does (``import_once``:
+    signed, and sealed for a secret), then the ``tamper`` steps applied to the
+    database without signing again. Needs SETTINGS_MASTER_KEY and DATABASE_URL."""
+    from sqlalchemy import text
+    from sqlalchemy.ext.asyncio import create_async_engine
+    from sqlalchemy.pool import NullPool
+
+    from backend.admin.services.settings_store import Actor, SettingsService, store_registry
+    from common.settings.keys import SectionKeys
+
+    spec = json.loads(Path(path).read_text())
+    registry = store_registry()
+    engine = create_async_engine(os.environ["DATABASE_URL"], poolclass=NullPool)
+    try:
+        async with engine.begin() as conn:
+            # a clean store (the guards that stop a runtime role from deleting are not in play: this is
+            # the test database's owner)
+            await conn.execute(text("SET LOCAL session_replication_role = replica"))
+            await conn.execute(text("DELETE FROM settings.history"))
+            await conn.execute(text("DELETE FROM settings.entries"))
+            await conn.execute(
+                text("UPDATE settings.manifest SET revision = 0, digest = repeat('0', 64), entries = '{}'::jsonb, sig = '' WHERE id = 1")
+            )
+        service = SettingsService(
+            engine,
+            registry,
+            SectionKeys(os.environ["SETTINGS_MASTER_KEY"], sections={s.section for s in registry}),
+        )
+        for key, value in (spec.get("settings") or {}).items():
+            if isinstance(value, str) and value.startswith("@ENV:"):
+                value = os.environ[value[5:]]
+            await service.import_once(key, value, Actor("cli"))
+        async with engine.begin() as conn:
+            await conn.execute(text("SET LOCAL session_replication_role = replica"))
+            for step in spec.get("tamper") or []:
+                if step["op"] == "value":
+                    await conn.execute(
+                        text("UPDATE settings.entries SET value = CAST(:v AS jsonb) WHERE key = :k"),
+                        {"v": json.dumps(step["value"]), "k": step["key"]},
+                    )
+                elif step["op"] == "blob":
+                    await conn.execute(
+                        text("UPDATE settings.entries SET blob = substr(blob, 1, length(blob) - 2) || 'AA' WHERE key = :k"),
+                        {"k": step["key"]},
+                    )
+                else:
+                    await conn.execute(text("UPDATE settings.manifest SET sig = repeat('0', 64) WHERE id = 1"))
+    finally:
+        await engine.dispose()
+    print("store written")
+
+
 if __name__ == "__main__":
-    if sys.argv[1] == "migrate":
+    if sys.argv[1] == "store":
+        asyncio.run(store(sys.argv[2]))
+    elif sys.argv[1] == "migrate":
         migrate()
     elif sys.argv[1] == "extend":
         asyncio.run(extend(sys.argv[2]))

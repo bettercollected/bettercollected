@@ -1,0 +1,66 @@
+{
+ "group": "permissions",
+ "description": "A pruned stack: the signing secret exists only in the store (sealed), SETTINGS_STORE=required, switches in the store. Both sides authenticate with it and agree.",
+ "store": {
+  "AUTH_JWT_SECRET": "@ENV:AUTH_JWT_SECRET",
+  "SSO_ENABLED": true,
+  "TOTP_ENABLED": true
+ },
+ "env": {
+  "AUTH_JWT_SECRET": null,
+  "SETTINGS_STORE": "required"
+ },
+ "cases": [
+  {
+   "name": "store-keys:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "both_owner",
+     "both_admin",
+     "both_owner_mfa",
+     "both_admin_apikey",
+     "both_admin_sso",
+     "dis_both_owner",
+     "dis_both_owner_mfa",
+     "totp_owner",
+     "sso_owner",
+     "owner",
+     "viewer",
+     "stranger",
+     "owner_old_key",
+     "owner_unknown_key",
+     "owner_expired",
+     "garbage"
+    ],
+    "w": [
+     "main",
+     "both"
+    ]
+   }
+  },
+  {
+   "name": "store-keys-rust:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "owner",
+     "viewer",
+     "stranger"
+    ],
+    "w": [
+     "main"
+    ]
+   },
+   "served_by": "rust"
+  }
+ ]
+}

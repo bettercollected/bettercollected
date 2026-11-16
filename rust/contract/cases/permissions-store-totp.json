@@ -1,0 +1,63 @@
+{
+ "group": "permissions",
+ "description": "TOTP on in the store, SSO unset everywhere.",
+ "store": {
+  "TOTP_ENABLED": true
+ },
+ "cases": [
+  {
+   "name": "store-totp:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "both_owner",
+     "both_admin",
+     "both_owner_mfa",
+     "both_admin_apikey",
+     "both_admin_sso",
+     "dis_both_owner",
+     "dis_both_owner_mfa",
+     "totp_owner",
+     "sso_owner",
+     "owner",
+     "viewer",
+     "stranger"
+    ],
+    "w": [
+     "totp",
+     "sso",
+     "both",
+     "dis_both",
+     "main"
+    ]
+   }
+  },
+  {
+   "name": "store-totp-rust:{who}@{w}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.{w}}/permissions",
+   "headers": {
+    "Cookie": "Authorization={token.{who}}"
+   },
+   "matrix": {
+    "who": [
+     "owner",
+     "viewer",
+     "stranger",
+     "totp_owner",
+     "totp_admin",
+     "totp_owner_mfa"
+    ],
+    "w": [
+     "main",
+     "totp"
+    ]
+   },
+   "served_by": "rust"
+  }
+ ]
+}

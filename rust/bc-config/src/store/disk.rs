@@ -267,25 +267,31 @@ pub fn read_snapshot(
     now: SystemTime,
 ) -> Result<(RawSnapshot, i64), SnapshotError> {
     use std::io::Read;
-    use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+    use std::os::unix::fs::MetadataExt;
     let dir_info = fs::symlink_metadata(directory).map_err(|_| SnapshotError("missing"))?;
     if !dir_info.is_dir() {
         return Err(SnapshotError("insecure"));
     }
     let path = snapshot_path(directory, service);
-    let file = fs::OpenOptions::new()
-        .read(true)
-        .custom_flags(0x2_0000) // O_NOFOLLOW on Linux
-        .open(&path)
-        .map_err(|e| {
-            if e.kind() == std::io::ErrorKind::NotFound {
-                SnapshotError("missing")
-            } else {
-                SnapshotError("insecure")
-            }
-        })?;
+    // no symlinks: the path itself must be the regular file that is opened (checked
+    // by device and inode, so no platform's O_NOFOLLOW value is assumed)
+    let link_info = fs::symlink_metadata(&path).map_err(|e| {
+        if e.kind() == std::io::ErrorKind::NotFound {
+            SnapshotError("missing")
+        } else {
+            SnapshotError("insecure")
+        }
+    })?;
+    if !link_info.is_file() {
+        return Err(SnapshotError("insecure"));
+    }
+    let file = fs::File::open(&path).map_err(|_| SnapshotError("insecure"))?;
     let info = file.metadata().map_err(|_| SnapshotError("insecure"))?;
-    if !info.is_file() || info.len() > MAX_BYTES {
+    if !info.is_file()
+        || info.len() > MAX_BYTES
+        || info.ino() != link_info.ino()
+        || info.dev() != link_info.dev()
+    {
         return Err(SnapshotError("insecure"));
     }
     if let Some(uid) = euid()
@@ -431,6 +437,28 @@ mod tests {
         write_snapshot(&dir, "backend", &[], &manifest, SystemTime::now()).unwrap();
         let path = snapshot_path(&dir, "backend");
         fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).unwrap();
+        assert_eq!(
+            read_snapshot(&dir, "backend", None, SystemTime::now())
+                .unwrap_err()
+                .0,
+            "insecure"
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_symlink_in_place_of_the_snapshot_is_not_followed() {
+        let dir = scratch("symlink");
+        let manifest = Manifest {
+            revision: 1,
+            entries: BTreeMap::new(),
+            sig: String::new(),
+        };
+        write_snapshot(&dir, "backend", &[], &manifest, SystemTime::now()).unwrap();
+        let real = snapshot_path(&dir, "backend");
+        let elsewhere = dir.join("elsewhere.json");
+        fs::rename(&real, &elsewhere).unwrap();
+        std::os::unix::fs::symlink(&elsewhere, &real).unwrap();
         assert_eq!(
             read_snapshot(&dir, "backend", None, SystemTime::now())
                 .unwrap_err()

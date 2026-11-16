@@ -136,6 +136,14 @@ impl Config {
         source: Option<Box<dyn store::SnapshotSource>>,
         denylist: &[&str],
     ) -> Result<Config, ConfigError> {
+        // the store's own messages already begin with "settings store"
+        let named = |e: StoreError| {
+            ConfigError(if e.0.starts_with("settings") {
+                e.0
+            } else {
+                format!("settings store: {}", e.0)
+            })
+        };
         let runtime = store::load(
             &env,
             store::registry::Registry::shipped(),
@@ -143,12 +151,10 @@ impl Config {
             REQUIRED_ENV_KEYS,
         )
         .await
-        .map_err(|e| ConfigError(format!("settings store: {e}")))?;
+        .map_err(named)?;
         let mut layers: Vec<Box<dyn SettingsSource>> = vec![Box::new(MapSource::new(env))];
         if let Some(runtime) = &runtime {
-            let values = runtime
-                .freeze()
-                .map_err(|e| ConfigError(format!("settings store: {e}")))?;
+            let values = runtime.freeze().map_err(named)?;
             layers.push(Box::new(StoreSource::new(values)));
         }
         let mut cfg = Config::from_settings_with_denylist(&Settings::new(layers), denylist)?;
