@@ -13,6 +13,25 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+## [5.2.0] - 2026-11-16
+
+5.2.0 adds a third form look, Pigment Leaflet: the structure of the Leaflet style in the colours of Pigment. It is offered with the Pigment look, so an instance that has `APP_THEME_PIGMENT_ENABLED` off sees no change at all.
+
+**Upgrading from 5.1.0:** nothing to configure. The changes that need your attention:
+
+- **Image tag only.** Set `BC_IMAGE_TAG` to `v5.2.0` (the default in `docker-compose.deployment.yml` is now `v5.2.0`). A stack that sets its image tags itself moves every first-party service to `v5.2.0` together.
+- **No database migration.** The alembic head stays `0041`. No new setting, secret or service.
+- **Existing forms do not change.** Leaflet, Pigment and every other preset look exactly as in 5.1.0; Pigment Leaflet is only used when a creator picks it.
+- **Rolling back to 5.1.0:** a form saved with the Pigment Leaflet preset names the Pigment artwork and lettered keys, which 5.1.0 knows, so it keeps opening and saving there (while the Pigment setting is on, as for any Pigment theme); it then looks the way 5.1.0 draws a Leaflet form with the Pigment artwork, with the section bar in the preset's iris instead of sun yellow.
+
+### Added
+
+- **A third form look, "Pigment Leaflet".** It puts the plain-language leaflet (numbered section bar, numbered
+  questions with their reasons in the margin, ruled answer rows) on warm paper in the Pigment colours, with lettered
+  answer keys and the Pigment ending, and one band instead of two: the section bar itself is the sun yellow and the
+  intro band under it a pale sun tint. Iris stays the colour of buttons, links, numerals and the chosen answer. It is
+  offered with the Pigment look (the same instance setting), and every other form looks exactly as before.
+
 ## [5.1.0] - 2026-11-15
 
 5.1.0 adds a second look for the creator app, Pigment: iris and sun yellow on warm paper, with flat shapes instead of the sun and hills. An instance admin turns it on with one setting, and then an owner or admin of each workspace chooses it for that workspace. The same setting offers a Pigment preset for forms, with lettered answer keys and a closing scene. Left as shipped, nothing looks different: the setting is off, every workspace keeps the Daybreak look of 5.0.2, and published forms and respondent pages are unchanged. The one change everyone gets is that the workspace menu can now be used with the keyboard. There is no database migration.
@@ -4030,7 +4049,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v5.1.0...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v5.2.0...HEAD
+[5.2.0]: https://github.com/bettercollected/bettercollected/compare/v5.1.0...v5.2.0
 [5.1.0]: https://github.com/bettercollected/bettercollected/compare/v5.0.2...v5.1.0
 [5.0.2]: https://github.com/bettercollected/bettercollected/compare/v5.0.1...v5.0.2
 [5.0.1]: https://github.com/bettercollected/bettercollected/compare/v5.0.0...v5.0.1
