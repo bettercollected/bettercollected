@@ -148,6 +148,9 @@ Keys are per API key.
 - Lists: `size` at most 100, `page` at most 10000.
 - Request bodies: at most 1 MB (413). A document has at most 200 pages and
   2000 fields.
+- JSON nesting: a request body nested more than 128 levels deep (arrays and
+  objects together) is refused with 422 `body_too_deep`, before it is read.
+  A typical form spec nests under ten levels; a rich-text title may nest up to 64.
 
 ## Errors
 

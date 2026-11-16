@@ -223,5 +223,5 @@ class CustomDomainService:
             raise HTTPException(
                 HTTPStatus.BAD_REQUEST, f"Invalid webhook: {error.code}"
             )
-        except (KeyError, ValueError, TypeError):
+        except (KeyError, ValueError, TypeError, RecursionError):
             raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid webhook payload.")

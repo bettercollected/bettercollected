@@ -105,7 +105,8 @@ def request_hash(method: str, path: str, body: bytes, *extra: str) -> str:
         canonical = json.dumps(
             json.loads(body), sort_keys=True, separators=(",", ":")
         ).encode()
-    except ValueError:
+    except (ValueError, RecursionError):
+        # not JSON, or nested deeper than the parser reads: the bytes themselves
         canonical = body
     digest = hashlib.sha256()
     for part in (

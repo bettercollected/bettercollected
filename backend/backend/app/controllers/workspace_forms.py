@@ -61,6 +61,7 @@ from backend.app.services.ai.review import (
 )
 from backend.app.decorators.user_tag_decorators import user_tag
 from backend.app.exceptions import HTTPException
+from backend.app.utils import json_depth
 from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto
 from backend.app.models.dtos.worksapce_form_dto import GroupsDto
 from backend.app.models.enum.FormVersion import FormVersion
@@ -147,14 +148,8 @@ def _parse_form_body(form_body: str) -> StandardForm:
     model. Structural errors (e.g. a nested repeating group) are the
     client's fault: answer 422 with the reason instead of a 500."""
     try:
-        try:
-            body = json.loads(form_body)
-        except RecursionError:
-            # json.loads itself gives up on a body nested some hundreds of levels deep
-            raise HTTPException(
-                status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-                content="The form is nested too deeply.",
-            )
+        # 422 body_too_deep past MAX_JSON_DEPTH levels, before json recurses
+        body = json_depth.loads(form_body)
         rules = raw_rule_count(body.get("fields")) if isinstance(body, dict) else 0
         if rules > FORM_FIELD_RULES_MAX:
             raise HTTPException(
@@ -757,7 +752,7 @@ class WorkspaceFormsRouter(Routable):
                 )
                 for file_id, field_id, file in zip(file_ids, file_field_ids, files)
             ]
-        parsed_response = StandardFormResponseCamelModel(**json.loads(response))
+        parsed_response = StandardFormResponseCamelModel(**json_depth.loads(response))
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
         response = await self.workspace_form_service.submit_response(
@@ -826,7 +821,7 @@ class WorkspaceFormsRouter(Routable):
                 )
                 for file_id, field_id, file in zip(file_ids, file_field_ids, files)
             ]
-        parsed_response = StandardFormResponseCamelModel(**json.loads(response))
+        parsed_response = StandardFormResponseCamelModel(**json_depth.loads(response))
         return await self.workspace_form_service.patch_response(
             workspace_id=workspace_id,
             form_id=form_id,

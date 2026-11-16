@@ -281,7 +281,8 @@ def _deep(levels):
 
 @pytest.mark.parametrize("where", ["rule_when", "rule_value", "calculated"])
 def test_a_builder_payload_with_a_deep_expression_is_a_clean_422(where):
-    deep = _deep(300)
+    # 40 levels: past what expressions allow (32), within what a body may nest
+    deep = _deep(40)
     if where == "rule_when":
         properties = {"rules": [{"id": "r1", "when": {"expression": deep}, "then": {"required": True}}]}
     elif where == "rule_value":
@@ -305,6 +306,29 @@ def test_a_builder_payload_with_a_deep_expression_is_a_clean_422(where):
         _parse_form_body(body)
     assert error.value.status_code == 422
     assert "nested at most 32 levels" in str(error.value.content)
+
+
+@pytest.mark.parametrize("levels", [100, 300])
+def test_an_expression_nested_past_what_a_body_may_is_refused_before_it_is_read(levels):
+    body = json.dumps(
+        {
+            "title": "x",
+            "builderVersion": "v2",
+            "fields": [
+                {
+                    "id": "p",
+                    "type": "slide",
+                    "properties": {
+                        "fields": [{"id": "a", "type": "number", "properties": {"expression": _deep(levels)}}]
+                    },
+                }
+            ],
+        }
+    )
+    with pytest.raises(HTTPException) as error:
+        _parse_form_body(body)
+    assert error.value.status_code == 422
+    assert error.value.content["code"] == "body_too_deep"
 
 
 @pytest.mark.parametrize("levels", [600, 100000])

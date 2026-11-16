@@ -116,7 +116,7 @@ class ScimWebhookService:
 
         try:
             payload = json.loads(body)
-        except ValueError:
+        except (ValueError, RecursionError):  # (nested deeper than json reads)
             return _reply(400, "invalid_body")
         events = payload if isinstance(payload, list) else [payload]
         if (

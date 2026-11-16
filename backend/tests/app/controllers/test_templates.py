@@ -159,6 +159,21 @@ class TestFormTemplates:
         )
         assert expected_response is not None
 
+    async def test_a_template_nested_too_deeply_is_refused_with_a_clear_422(
+        self,
+        client: AsyncClient,
+        workspace: WorkspaceDocument,
+        test_user_cookies: dict[str, str],
+    ):
+        for levels in (200, 983, 5000):
+            refused = await client.post(
+                f"/api/v1/workspaces/{workspace.id}/template",
+                cookies=test_user_cookies,
+                data={"template_body": "[" * levels + "]" * levels},
+            )
+            assert refused.status_code == 422, refused.text
+            assert refused.json()["code"] == "body_too_deep"
+
     async def test_unauthorized_user_create_new_template(
         self,
         client: AsyncClient,

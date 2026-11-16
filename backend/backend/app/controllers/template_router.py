@@ -17,6 +17,7 @@ from common.models.user import User
 from typing import Optional
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
+from backend.app.utils import json_depth
 from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.models.template import (
@@ -43,7 +44,7 @@ def template_from_form_body(body: str) -> StandardFormTemplateCamelModel:
     """The template a multipart ``template_body`` describes; a 422 naming the
     invalid fields (never their values) when it doesn't fit the model."""
     try:
-        data = json.loads(body)
+        data = json_depth.loads(body)
         # far too many field rules: refused before each one is parsed
         rules = raw_rule_count(data.get("fields")) if isinstance(data, dict) else 0
         if rules > FORM_FIELD_RULES_MAX:
