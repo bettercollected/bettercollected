@@ -96,6 +96,11 @@ uv run --project backend python rust/contract/golden_crypto.py check-derived rus
 
 Regenerating a vector changes its keys, so run the Rust tests again before the `check-` commands.
 
+Run the generators with the Python the backend image runs (`--python 3.11.12`): a few behaviours the vectors pin differ
+between Python releases (stray base64 padding, how deep a JSON body can nest). The nesting limit in
+`bc-crypto/src/pyjson.rs` was measured on the running backend with `contract/json_depth_probe.py`; measure it again when
+the image's Python version or the middleware stack changes.
+
 ## The per-group switch
 
 A route group is a set of routes that moves from Python to Rust together. `BC_RUST_ROUTES` names the groups
