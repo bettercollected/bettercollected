@@ -19,9 +19,9 @@ pub async fn find_membership(
     .bind(user_id)
     .fetch_optional(pool)
     .await?;
-    Ok(row.map(|r| {
-        let doc: Value = r.get("doc");
-        Membership {
+    row.map(|r| -> Result<_, sqlx::Error> {
+        let doc: Value = r.try_get("doc")?;
+        Ok(Membership {
             user_id: id_text(doc.get("user_id")).unwrap_or_default(),
             roles: doc
                 .get("roles")
@@ -29,8 +29,9 @@ pub async fn find_membership(
                 .cloned()
                 .unwrap_or_default(),
             disabled: truthy(doc.get("disabled")),
-        }
-    }))
+        })
+    })
+    .transpose()
 }
 
 /// `PostgresWorkspaceRepository.find_by_id`.
@@ -42,13 +43,14 @@ pub async fn find_by_id(
         .bind(workspace_id)
         .fetch_optional(pool)
         .await?;
-    Ok(row.map(|r| {
-        let doc: Value = r.get("doc");
-        WorkspaceFacts {
+    row.map(|r| -> Result<_, sqlx::Error> {
+        let doc: Value = r.try_get("doc")?;
+        Ok(WorkspaceFacts {
             owner_id: id_text(doc.get("owner_id")),
             disabled: truthy(doc.get("disabled")),
             sso_required: truthy(doc.get("sso_required")),
             require_totp: truthy(doc.get("require_totp")),
-        }
-    }))
+        })
+    })
+    .transpose()
 }

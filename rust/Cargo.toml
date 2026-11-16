@@ -30,6 +30,8 @@ bc-http = { path = "bc-http" }
 aes-gcm = "0.10"
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio", "query"] }
 base64 = "0.22"
+chrono = { version = "0.4", default-features = false, features = ["std", "now"] }
+getrandom = "0.2"
 futures-util = { version = "0.3", default-features = false, features = ["std"] }
 hex = "0.4"
 http-body-util = "0.1"
@@ -41,8 +43,9 @@ percent-encoding = "2"
 regex = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha1 = "0.10"
 sha2 = "0.10"
-sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "tls-rustls-ring-webpki", "postgres", "json", "macros"] }
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "tls-rustls-ring-webpki", "postgres", "json", "macros", "chrono"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal", "time", "sync"] }
 tower = { version = "0.5", features = ["util"] }
 tracing = "0.1"
