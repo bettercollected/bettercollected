@@ -36,10 +36,10 @@ dependencies = [
     "cryptography>=50.0.2",
     # reached through pymongo; floor for GHSA-vvf4-9x63-8xvv (zone-file parser)
     "dnspython>=2.9.2",
-    "pydantic>=2.14.1",
+    "pydantic>=2.14.4",
     # the import from 4.0 reads Mongo with its own client (common/db/migrate); the
     # doc codec uses bson. Both stay until the 5.0 removal of the import path.
-    "pymongo>=4.18.3",
+    "pymongo>=4.20.1",
     "sqlalchemy[asyncio]>=2.0.55,<2.1",
     "tink>=1.16.1",
 ]
@@ -56,8 +56,8 @@ dev = [
     # the 4.0 codec and classes, for the golden fixtures and the import tests only
     "beanie>=2.2.0",
     "black>=26.10.1",
-    "pytest>=8.0.0",
-    "pytest-asyncio>=1.4.0",
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.5.0",
 ]
 
 [tool.uv]
