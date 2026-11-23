@@ -11,7 +11,7 @@ publish.workspace = true
 bc-config = { workspace = true }
 aes-gcm = { workspace = true }
 base64 = { workspace = true }
-getrandom = "0.2"
+getrandom = "0.4"
 hex = { workspace = true }
 # float_roundtrip: floats are parsed correctly rounded, as Python does
 serde_json = { workspace = true, features = ["float_roundtrip"] }

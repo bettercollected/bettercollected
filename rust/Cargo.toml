@@ -31,7 +31,7 @@ aes-gcm = "0.10"
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio", "query"] }
 base64 = "0.23"
 chrono = { version = "0.4", default-features = false, features = ["std"] }
-getrandom = "0.2"
+getrandom = "0.4"
 futures-util = { version = "0.3", default-features = false, features = ["std"] }
 hex = "0.4"
 hkdf = "0.12"
