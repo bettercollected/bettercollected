@@ -451,7 +451,7 @@ requires-dist = [
     { name = "pdfplumber", specifier = ">=0.11" },
     { name = "pillow", specifier = ">=13.0.0" },
     { name = "procrastinate", specifier = ">=3.10.0,<4" },
-    { name = "publicsuffixlist", specifier = ">=1.1.2.20261113" },
+    { name = "publicsuffixlist", specifier = ">=1.1.2.20261120" },
     { name = "pydantic-settings", specifier = ">=2.16.1" },
     { name = "pyjwt", specifier = ">=2.15.1" },
     { name = "pymongo", specifier = ">=4.19.0" },
@@ -2594,11 +2594,11 @@ wheels = [
 
 [[package]]
 name = "publicsuffixlist"
-version = "1.1.2.20261113"
+version = "1.1.2.20261120"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/fb/62/1cde468a0c78ae179c19fbf68c258a01ebc1764e02c743469744564b1a9e/publicsuffixlist-1.1.2.20261113.tar.gz", hash = "sha256:e35920e29b42f6c716d29814658b60ee2673bf02309cac375455b561e1d11da4", size = 107018, upload-time = "2026-11-13T10:50:34.205Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f9/59/225e9a0a7e6eb1c6d043dc1190ffcaf1dbe0fc83c5452f82b0fee7473b0d/publicsuffixlist-1.1.2.20261120.tar.gz", hash = "sha256:6ec943fdc2379467eb3c86b9dccc0d6dfa8393dbe0f37b7d3fa47675831124d4", size = 108076, upload-time = "2026-11-20T11:24:04.457Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/97/96/8eff034d02051ed5bd30f0f694ab2a272272c6ad72636ea464f16fa569b9/publicsuffixlist-1.1.2.20261113-py3-none-any.whl", hash = "sha256:837494f6dcb18ccb90b104b1741b25688c07a0d34a05baa9062d74cefc0c0b6e", size = 109784, upload-time = "2026-11-13T10:50:32.941Z" },
+    { url = "https://files.pythonhosted.org/packages/72/63/fd95e4c9834378ea11cb7db1f8bb232f4f253f799e82cf945a5f19f0fc0c/publicsuffixlist-1.1.2.20261120-py3-none-any.whl", hash = "sha256:b8c6f3ee9108d47ecad75b48ef2a42cdb3588b685dfa39ae1501430d50e67eca", size = 110778, upload-time = "2026-11-20T11:24:03.001Z" },
 ]
 
 [[package]]
