@@ -34,7 +34,7 @@ chrono = { version = "0.4", default-features = false, features = ["std"] }
 getrandom = "0.2"
 futures-util = { version = "0.3", default-features = false, features = ["std"] }
 hex = "0.4"
-hkdf = "0.12"
+hkdf = "0.13"
 hmac = "0.12"
 http-body-util = "0.1"
 hyper = { version = "1", default-features = false, features = ["http1", "client", "server"] }
